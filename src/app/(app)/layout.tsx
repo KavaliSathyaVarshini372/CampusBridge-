@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   SidebarProvider,
@@ -20,10 +20,13 @@ import {
   MessageSquare,
   Newspaper,
   Shield,
-  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
+import { useAuth } from '@/hooks/use-auth';
+import React, { useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   { href: '/events', icon: Calendar, label: 'Events' },
@@ -35,8 +38,28 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // Simple role check for demo
-  const userRole = 'admin'; // or 'user'
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
+
+  // For now, we'll assume any logged-in user can be an admin for demo purposes.
+  // A real app would have role management in the database.
+  const userRole = user ? 'admin' : 'user';
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+         <div className="flex flex-col items-center gap-4">
+            <p className="text-muted-foreground">Loading your experience...</p>
+         </div>
+      </div>
+    )
+  }
 
   return (
     <SidebarProvider>
@@ -73,11 +96,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={{children: "Login", side: "right", align: "center"}}>
-                  <Link href="/login">
-                    <LogIn />
-                    <span>Login</span>
-                  </Link>
+                <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
+                  <LogOut />
+                  <span>Logout</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
