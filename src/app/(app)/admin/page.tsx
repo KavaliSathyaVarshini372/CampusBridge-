@@ -23,14 +23,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
+import { getReports } from "@/app/actions/admin"
 
-const reports = [
-  { id: '1', itemType: 'Collaboration Post', reportedBy: 'user123@example.com', reason: 'Spam', date: '2024-05-20', status: 'Pending' },
-  { id: '2', itemType: 'User Profile', reportedBy: 'user456@example.com', reason: 'Inappropriate Content', date: '2024-05-19', status: 'Pending' },
-  { id: '3', itemType: 'Event Comment', reportedBy: 'user789@example.com', reason: 'Harassment', date: '2024-05-18', status: 'Resolved' },
-];
+async function seedReports() {
+    const { db } = await import('@/lib/firebase');
+    if (!db) return;
+    const { collection, getDocs, addDoc } = await import('firebase/firestore');
+    
+    const reportsCollection = collection(db, 'reports');
+    const snapshot = await getDocs(reportsCollection);
+    if (snapshot.empty) {
+        console.log("Seeding reports...");
+        const reportsToSeed = [
+            { itemType: 'Collaboration Post', reportedBy: 'user123@example.com', reason: 'Spam', date: '2024-05-20', status: 'Pending' },
+            { itemType: 'User Profile', reportedBy: 'user456@example.com', reason: 'Inappropriate Content', date: '2024-05-19', status: 'Pending' },
+            { itemType: 'Event Comment', reportedBy: 'user789@example.com', reason: 'Harassment', date: '2024-05-18', status: 'Resolved' },
+        ];
+        for (const report of reportsToSeed) {
+            await addDoc(reportsCollection, report);
+        }
+    }
+}
 
-export default function AdminPage() {
+export default async function AdminPage() {
+    await seedReports();
+    const reports = await getReports() as any[];
+
   return (
     <div>
       <div className="mb-8">
@@ -59,6 +77,13 @@ export default function AdminPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {reports.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                        No reports found.
+                    </TableCell>
+                </TableRow>
+              )}
               {reports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.itemType}</TableCell>
