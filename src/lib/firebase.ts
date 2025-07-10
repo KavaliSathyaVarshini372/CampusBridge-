@@ -14,36 +14,24 @@ const firebaseConfig = {
 
 export const isFirebaseEnabled = !!(firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE");
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-
-if (isFirebaseEnabled) {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  console.warn("Firebase configuration is missing or uses placeholder values. Firebase features will be disabled.");
-}
-
-// These exports are now safe because they are guarded by the isFirebaseEnabled check.
-// If Firebase is disabled, they will be undefined, and the app's logic (in useAuth and server actions) handles this case.
-// @ts-ignore
-export const firebaseApp: FirebaseApp = app;
-// @ts-ignore
-export const firebaseAuth: Auth = auth;
-// @ts-ignore
-export const firestoreDb: Firestore = db;
-
-// This function is for client-side components to safely get the auth instance.
-export function initializeFirebase() {
+function getFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseEnabled) {
-    throw new Error("Firebase is not enabled. Please check your configuration.");
+    return null;
   }
-  // The app is already initialized above, so we can just return the auth instance.
-  return auth;
+  return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
+
+// Global instances for server-side usage
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+if(isFirebaseEnabled) {
+    const app = getFirebaseApp();
+    if (app) {
+        auth = getAuth(app);
+        db = getFirestore(app);
+    }
+}
+
+export const firebaseApp = getFirebaseApp();
+export const firebaseAuth = auth;
+export const firestoreDb = db;

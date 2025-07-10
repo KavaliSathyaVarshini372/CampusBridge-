@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, Auth } from 'firebase/auth';
-import { isFirebaseEnabled, firebaseAuth as authInstance, initializeFirebase } from '@/lib/firebase';
+import { isFirebaseEnabled, firebaseAuth as authInstance } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -27,15 +27,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (isFirebaseEnabled) {
-      // Use the globally initialized auth instance from firebase.ts
       const auth = authInstance; 
       setFirebaseAuth(auth);
 
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        setUser(user);
+      if (auth) {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUser(user);
+          setLoading(false);
+        });
+        return () => unsubscribe();
+      } else {
         setLoading(false);
-      });
-      return () => unsubscribe();
+      }
     } else {
       setLoading(false);
     }
