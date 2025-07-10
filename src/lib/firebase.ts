@@ -15,22 +15,19 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
-// Initialize Firebase only if the API key is provided and not the placeholder
 if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
-  try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-  } catch (e) {
-    console.error("Failed to initialize Firebase. Please check your .env.local file and Firebase project configuration.", e);
-    // Set to null if initialization fails
-    app = null;
-    auth = null;
-    db = null;
-  }
+    try {
+        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+    } catch (e) {
+        console.error("Failed to initialize Firebase. Please check your .env.local file and Firebase project configuration.", e);
+        app = null;
+        auth = null;
+        db = null;
+    }
 } else {
-    console.warn("Firebase API key is missing or is a placeholder. Firebase features will be disabled. Please add your Firebase configuration to the .env.local file.");
+    console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
 }
-
 
 export { app, auth, db };
