@@ -2,29 +2,27 @@
 'use server';
 
 import { z } from 'zod';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { firestoreDb } from '@/lib/firebase';
 import { ContactFormSchema } from '@/lib/schemas';
+import { revalidatePath } from 'next/cache';
+
+// This is an in-memory store. Data will reset on server restart.
+let inquiriesStore: any[] = [];
 
 export async function saveContactInquiry(values: z.infer<typeof ContactFormSchema>) {
-  if (!firestoreDb) {
-    return { success: false, message: 'Database not configured.' };
-  }
-
   const validatedFields = ContactFormSchema.safeParse(values);
 
   if (!validatedFields.success) {
     return { success: false, message: 'Invalid form data.' };
   }
 
-  try {
-    await addDoc(collection(firestoreDb, 'inquiries'), {
-      ...validatedFields.data,
-      timestamp: serverTimestamp(),
-    });
-    return { success: true, message: 'Your message has been sent!' };
-  } catch (error) {
-    console.error('Error saving inquiry:', error);
-    return { success: false, message: 'Failed to send message.' };
-  }
+  const newInquiry = {
+    id: `inq-${Date.now()}`,
+    ...validatedFields.data,
+    timestamp: new Date().toISOString(),
+  };
+
+  inquiriesStore.unshift(newInquiry);
+  console.log("New inquiry added. Current inquiries:", inquiriesStore);
+  
+  return { success: true, message: 'Your message has been sent successfully!' };
 }

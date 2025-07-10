@@ -5,6 +5,7 @@ import { useTransition } from 'react';
 import { Button } from './ui/button';
 import { toggleRsvp } from '@/app/actions/events';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface RsvpButtonProps {
     eventId: string;
@@ -13,6 +14,7 @@ interface RsvpButtonProps {
 
 export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
     const { toast } = useToast();
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     
     // Auth is disabled
@@ -22,15 +24,25 @@ export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
     const handleRsvp = () => {
         startTransition(async () => {
             try {
-                await toggleRsvp(eventId);
-                toast({
-                    title: 'Success',
-                    description: isRsvpd ? "You have successfully un-RSVP'd (simulation)." : 'You have successfully RSVP\'d! (simulation)',
-                });
+                const result = await toggleRsvp(eventId);
+                if (result.success) {
+                    toast({
+                        title: 'Success',
+                        description: result.isRsvpd ? 'You have successfully RSVP\'d!' : "You have successfully un-RSVP'd.",
+                    });
+                    // Manually trigger a re-render by refreshing the page data
+                    router.refresh();
+                } else {
+                     toast({
+                        title: 'Error',
+                        description: result.message,
+                        variant: 'destructive',
+                    });
+                }
             } catch (error) {
                 toast({
                     title: 'Error',
-                    description: (error as Error).message,
+                    description: (error as Error).message || "An unexpected error occurred.",
                     variant: 'destructive',
                 });
             }

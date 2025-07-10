@@ -1,8 +1,6 @@
 
 'use server';
 
-import { arrayRemove, arrayUnion, collection, doc, getDocs, orderBy, query, updateDoc, getDoc } from 'firebase/firestore';
-import { firestoreDb } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
 const MOCK_EVENTS = [
@@ -26,7 +24,7 @@ const MOCK_EVENTS = [
       description: 'Connect with top employers from various industries. Bring your resume!',
       image: 'https://placehold.co/600x400.png',
       aiHint: 'career fair',
-      rsvps: [],
+      rsvps: ['guest-user'],
     },
     {
       id: '3',
@@ -41,78 +39,28 @@ const MOCK_EVENTS = [
     },
 ];
 
+// This is an in-memory store. Data will reset on server restart.
+let eventsStore = [...MOCK_EVENTS];
+
 export async function getEvents() {
-    if (!firestoreDb) {
-        console.log("Firestore not configured. Returning mock events.");
-        return MOCK_EVENTS;
-    }
-
-    try {
-        const eventsRef = collection(firestoreDb, 'events');
-        const q = query(eventsRef, orderBy('date', 'asc'));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            console.log("No events in Firestore. Returning mock events.");
-            return MOCK_EVENTS;
-        }
-        
-        const events = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                date: data.date,
-            };
-        });
-
-        return events;
-    } catch (error: any) {
-        console.error('Error fetching events:', error.message);
-        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-            console.log("Firestore permission denied. Returning mock data as a fallback.");
-            return MOCK_EVENTS;
-        }
-        // For other errors, you might want to return an empty array or handle differently
-        return [];
-    }
+    return [...eventsStore].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function toggleRsvp(eventId: string) {
-    // Auth is disabled
-    console.log(`RSVP toggled for event ${eventId}. Auth is disabled.`);
-    return;
+    const event = eventsStore.find(e => e.id === eventId);
+    if (!event) {
+        return { success: false, message: "Event not found" };
+    }
 
+    const mockUserId = 'guest-user'; // Auth is disabled
+    const isRsvpd = event.rsvps.includes(mockUserId);
 
-    // const auth = await getAuthOrThrow();
-
-    // if (!firestoreDb || !auth?.currentUser) {
-    //     throw new Error('User is not authenticated or DB is not available.');
-    // }
-
-    // const userId = auth.currentUser.uid;
-    // const eventRef = doc(firestoreDb, 'events', eventId);
-
-    // try {
-    //     const eventSnap = await getDoc(eventRef);
-    //     if (!eventSnap.exists()) {
-    //         throw new Error("Event not found");
-    //     }
-    //     const eventData = eventSnap.data();
-    //     const rsvps = eventData.rsvps || [];
-        
-    //     if (rsvps.includes(userId)) {
-    //         await updateDoc(eventRef, {
-    //             rsvps: arrayRemove(userId)
-    //         });
-    //     } else {
-    //         await updateDoc(eventRef, {
-    //             rsvps: arrayUnion(userId)
-    //         });
-    //     }
-    //     revalidatePath('/events');
-    // } catch (error) {
-    //     console.error('Error toggling RSVP:', error);
-    //     throw new Error('Failed to update RSVP status.');
-    // }
+    if (isRsvpd) {
+        event.rsvps = event.rsvps.filter(id => id !== mockUserId);
+    } else {
+        event.rsvps.push(mockUserId);
+    }
+    
+    revalidatePath('/events');
+    return { success: true, isRsvpd: !isRsvpd };
 }

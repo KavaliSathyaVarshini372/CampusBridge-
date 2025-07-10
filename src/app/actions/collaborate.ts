@@ -2,10 +2,9 @@
 'use server';
 
 import { z } from 'zod';
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { firestoreDb } from '@/lib/firebase';
 import { CollaborationPostSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
+import { addReport } from './admin';
 
 const MOCK_COLLABORATION_POSTS = [
     {
@@ -46,67 +45,68 @@ const MOCK_COLLABORATION_POSTS = [
     },
 ];
 
+// This is an in-memory store. Data will reset on server restart.
+let postsStore = [...MOCK_COLLABORATION_POSTS];
+
+
 export async function getCollaborationPosts(category?: string) {
-    if (!firestoreDb) {
-        console.log("Firestore not configured. Returning mock collaboration posts.");
-        const filteredPosts = category && category !== 'all' ? MOCK_COLLABORATION_POSTS.filter(p => p.category === category) : MOCK_COLLABORATION_POSTS;
-        return filteredPosts;
-    }
-
-    try {
-        const postsRef = collection(firestoreDb, 'collaborations');
-        let q;
-
-        if (category && category !== 'all') {
-            q = query(postsRef, where('category', '==', category), orderBy('timestamp', 'desc'));
-        } else {
-            q = query(postsRef, orderBy('timestamp', 'desc'));
-        }
-
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            console.log("No collaboration posts in Firestore. Returning mock posts.");
-            const filteredPosts = category && category !== 'all' ? MOCK_COLLABORATION_POSTS.filter(p => p.category === category) : MOCK_COLLABORATION_POSTS;
-            return filteredPosts;
-        }
-
-        const posts = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                timestamp: data.timestamp?.toDate().toISOString() || new Date().toISOString(),
-                interestedUsers: data.interestedUsers || [],
-            };
-        });
-        return posts;
-    } catch (error: any) {
-        console.error('Error fetching collaboration posts:', error.message);
-        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-            console.log("Firestore permission denied. Returning mock data as a fallback.");
-            const filteredPosts = category && category !== 'all' ? MOCK_COLLABORATION_POSTS.filter(p => p.category === category) : MOCK_COLLABORATION_POSTS;
-            return filteredPosts;
-        }
-        return [];
-    }
+    const filteredPosts = category && category !== 'all' 
+        ? postsStore.filter(p => p.category === category) 
+        : postsStore;
+    
+    // We return a sorted copy to simulate a real database query
+    return [...filteredPosts].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 
 export async function createCollaborationPost(values: z.infer<typeof CollaborationPostSchema>) {
-    // Auth is disabled
-    console.log("Post creation simulated. Auth is disabled.");
-    return { success: true, message: 'Post created successfully! (Simulation)' };
+    const validatedFields = CollaborationPostSchema.safeParse(values);
+
+    if (!validatedFields.success) {
+        return { success: false, message: 'Invalid form data.' };
+    }
+
+    const newPost = {
+        id: `cl-${Date.now()}`,
+        authorId: 'guest-user', // Auth is disabled
+        authorName: 'Guest User',
+        authorAvatar: 'https://placehold.co/40x40.png',
+        title: validatedFields.data.title,
+        description: validatedFields.data.description,
+        tags: [],
+        category: validatedFields.data.category,
+        timestamp: new Date().toISOString(),
+        interestedUsers: [],
+    };
+
+    postsStore.unshift(newPost); // Add to the beginning of the array
+    revalidatePath('/collaborate');
+    return { success: true, message: 'Post created successfully!' };
 }
 
 export async function toggleInterest(postId: string) {
-    // Auth is disabled
-    console.log(`Interest toggled for post ${postId}. Auth is disabled.`);
-    return { success: true, message: 'Interest updated (simulation).' };
+    const post = postsStore.find(p => p.id === postId);
+    if (!post) {
+        return { success: false, message: 'Post not found.' };
+    }
+
+    const mockUserId = "guest-user"; // Auth is disabled
+    const isInterested = post.interestedUsers.includes(mockUserId);
+
+    if (isInterested) {
+        post.interestedUsers = post.interestedUsers.filter(id => id !== mockUserId);
+    } else {
+        post.interestedUsers.push(mockUserId);
+    }
+    
+    revalidatePath('/collaborate');
+    return { success: true, message: 'Interest updated.' };
 }
 
 export async function reportPost(postId: string, reason: string) {
-    // Auth is disabled
-    console.log(`Report submitted for post ${postId}. Auth is disabled.`);
-    return { success: true, message: 'Post reported successfully. Our team will review it. (Simulation)' };
+    const post = postsStore.find(p => p.id === postId);
+    if (!post) {
+        return { success: false, message: 'Post not found.' };
+    }
+    return addReport(postId, 'Collaboration Post', reason);
 }
