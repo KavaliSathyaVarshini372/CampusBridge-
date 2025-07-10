@@ -3,19 +3,39 @@
 
 import { z } from 'zod';
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseAuth } from '@/lib/firebase';
+import { firestoreDb, firebaseAuth } from '@/lib/firebase';
 import { CollaborationPostSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { Auth, getAuth } from "firebase/auth";
+import { initializeApp, getApp, getApps } from "firebase/app";
+
+// This is a temporary workaround for a bug in Next.js
+// where server actions don't have access to the auth state
+async function getAuthOrThrow() {
+  if (firebaseAuth) {
+    return firebaseAuth;
+  }
+  const-header = headers();
+  const session = header.get("x-firebase-session");
+  if (session) {
+    const app = getApps().length > 0 ? getApp() : initializeApp({});
+    const auth = getAuth(app);
+    await auth.updateCurrentUser(JSON.parse(session));
+    return auth;
+  }
+  return null;
+}
+
 
 export async function getCollaborationPosts(category?: string) {
-    const db = getFirebaseDb();
-    if (!db) {
+    if (!firestoreDb) {
         console.log("Db not available");
         return [];
     }
 
     try {
-        const postsRef = collection(db, 'collaborations');
+        const postsRef = collection(firestoreDb, 'collaborations');
         let q;
 
         if (category && category !== 'all') {
@@ -43,10 +63,9 @@ export async function getCollaborationPosts(category?: string) {
 
 
 export async function createCollaborationPost(values: z.infer<typeof CollaborationPostSchema>) {
-    const db = getFirebaseDb();
-    const auth = getFirebaseAuth();
+    const auth = await getAuthOrThrow();
 
-    if (!db || !auth?.currentUser) {
+    if (!firestoreDb || !auth?.currentUser) {
         return { success: false, message: 'Authentication or Database not configured.' };
     }
 
@@ -59,7 +78,7 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     const { uid, displayName, photoURL } = auth.currentUser;
 
     try {
-        await addDoc(collection(db, 'collaborations'), {
+        await addDoc(collection(firestoreDb, 'collaborations'), {
             ...validatedFields.data,
             authorId: uid,
             authorName: displayName || 'Anonymous',
@@ -77,15 +96,14 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
 }
 
 export async function toggleInterest(postId: string) {
-    const db = getFirebaseDb();
-    const auth = getFirebaseAuth();
+    const auth = await getAuthOrThrow();
 
-    if (!db || !auth?.currentUser) {
+    if (!firestoreDb || !auth?.currentUser) {
         return { success: false, message: 'You must be logged in to express interest.' };
     }
 
     const userId = auth.currentUser.uid;
-    const postRef = doc(db, 'collaborations', postId);
+    const postRef = doc(firestoreDb, 'collaborations', postId);
 
     try {
         const postSnap = await getDoc(postRef);
@@ -114,17 +132,15 @@ export async function toggleInterest(postId: string) {
 }
 
 export async function reportPost(postId: string, reason: string) {
-    const db = getFirebaseDb();
-    const auth = getFirebaseAuth();
-
-    if (!db || !auth?.currentUser) {
+    const auth = await getAuthOrThrow();
+    if (!firestoreDb || !auth?.currentUser) {
         return { success: false, message: 'You must be logged in to report a post.' };
     }
 
     const { uid, email } = auth.currentUser;
 
     try {
-        await addDoc(collection(db, 'reports'), {
+        await addDoc(collection(firestoreDb, 'reports'), {
             itemId: postId,
             itemType: 'Collaboration Post',
             reportedBy: email || uid,

@@ -2,15 +2,14 @@
 'use server';
 
 import { collection, getDocs, orderBy, query, doc, updateDoc } from 'firebase/firestore';
-import { getFirebaseDb } from '@/lib/firebase';
+import { firestoreDb } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
 export async function getReports() {
-    const db = getFirebaseDb();
-    if (!db) return [];
+    if (!firestoreDb) return [];
 
     try {
-        const reportsRef = collection(db, 'reports');
+        const reportsRef = collection(firestoreDb, 'reports');
         const q = query(reportsRef, orderBy('date', 'desc'));
         const querySnapshot = await getDocs(q);
         const reports = querySnapshot.docs.map(doc => {
@@ -29,13 +28,12 @@ export async function getReports() {
 }
 
 export async function updateReportStatus(reportId: string, status: 'Resolved' | 'Dismissed') {
-    const db = getFirebaseDb();
-    if (!db) {
+    if (!firestoreDb) {
         return { success: false, message: 'Database not configured.' };
     }
 
     try {
-        const reportRef = doc(db, 'reports', reportId);
+        const reportRef = doc(firestoreDb, 'reports', reportId);
         await updateDoc(reportRef, { status });
         revalidatePath('/admin');
         return { success: true, message: 'Report status updated.' };

@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirebaseAuth, isFirebaseEnabled } from '@/lib/firebase';
+import { isFirebaseEnabled, firebaseAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -25,13 +25,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    if (!firebaseAuth) {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       setUser(user);
       setLoading(false);
     });
@@ -39,41 +38,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signInWithEmail = async (email: string, pass: string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-        toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+    if (!firebaseAuth) {
+        toast({ title: "Error", description: "Authentication is not configured.", variant: "destructive" });
         return;
     }
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      await signInWithEmailAndPassword(firebaseAuth, email, pass);
       router.push('/events');
     } catch (error: any) {
+      console.error(error);
       toast({ title: "Login Failed", description: error.message, variant: "destructive" });
     }
   };
 
   const signUpWithEmail = async (email: string, pass: string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+    if (!firebaseAuth) {
+      toast({ title: "Error", description: "Authentication is not configured.", variant: "destructive" });
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, pass);
+      await createUserWithEmailAndPassword(firebaseAuth, email, pass);
       router.push('/events');
     } catch (error: any) {
+      console.error(error);
       toast({ title: "Sign Up Failed", description: error.message, variant: "destructive" });
     }
   };
 
   const signOut = async () => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-        toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+    if (!firebaseAuth) {
+        toast({ title: "Error", description: "Authentication is not configured.", variant: "destructive" });
         return;
     }
     try {
-      await firebaseSignOut(auth);
+      await firebaseSignOut(firebaseAuth);
       router.push('/login');
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });

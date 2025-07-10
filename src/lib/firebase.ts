@@ -12,22 +12,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE';
+// This check is for the developer to see if they have configured Firebase
+export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
 
-function getFirebaseApp(): FirebaseApp | null {
-    if (!isFirebaseEnabled) {
-        console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
-        return null;
-    }
-    return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+
+if (isFirebaseEnabled) {
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+    console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
 }
 
-export function getFirebaseAuth(): Auth | null {
-    const app = getFirebaseApp();
-    return app ? getAuth(app) : null;
-}
-
-export function getFirebaseDb(): Firestore | null {
-    const app = getFirebaseApp();
-    return app ? getFirestore(app) : null;
-}
+export const firebaseApp = app;
+export const firebaseAuth = auth;
+export const firestoreDb = db;

@@ -3,12 +3,11 @@
 
 import { z } from 'zod';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { getFirebaseDb } from '@/lib/firebase';
+import { firestoreDb } from '@/lib/firebase';
 import { ContactFormSchema } from '@/lib/schemas';
 
 export async function saveContactInquiry(values: z.infer<typeof ContactFormSchema>) {
-  const db = getFirebaseDb();
-  if (!db) {
+  if (!firestoreDb) {
     return { success: false, message: 'Database not configured.' };
   }
 
@@ -19,7 +18,7 @@ export async function saveContactInquiry(values: z.infer<typeof ContactFormSchem
   }
 
   try {
-    await addDoc(collection(db, 'inquiries'), {
+    await addDoc(collection(firestoreDb, 'inquiries'), {
       ...validatedFields.data,
       timestamp: serverTimestamp(),
     });
