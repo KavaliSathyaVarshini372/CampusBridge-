@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
@@ -11,12 +12,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE';
+
 function getFirebaseApp(): FirebaseApp | null {
-    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
-        return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    if (!isFirebaseEnabled) {
+        console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
+        return null;
     }
-    console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
-    return null;
+    return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 }
 
 export function getFirebaseAuth(): Auth | null {
@@ -28,5 +31,3 @@ export function getFirebaseDb(): Firestore | null {
     const app = getFirebaseApp();
     return app ? getFirestore(app) : null;
 }
-
-export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE';
