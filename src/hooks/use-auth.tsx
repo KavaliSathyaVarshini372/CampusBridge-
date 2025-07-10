@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirebaseAuth, isFirebaseEnabled } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
@@ -9,7 +10,8 @@ import { useToast } from './use-toast';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<void>;
   signOut: () => Promise<void>;
   isFirebaseReady: boolean;
 }
@@ -23,14 +25,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isFirebaseEnabled) {
-      setLoading(false);
-      return;
-    }
     const auth = getFirebaseAuth();
     if (!auth) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -40,55 +38,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithEmail = async (email: string, pass: string) => {
     const auth = getFirebaseAuth();
     if (!auth) {
-        toast({
-            title: "Feature Unavailable",
-            description: "Firebase is not configured. Please add credentials to the .env.local file.",
-            variant: "destructive"
-        });
+        toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
         return;
     }
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithEmailAndPassword(auth, email, pass);
       router.push('/events');
-    } catch (error) {
-      console.error("Error signing in with Google", error);
-      toast({
-        title: "Sign-in Error",
-        description: "Could not sign in with Google. Please try again.",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      toast({ title: "Login Failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+      return;
+    }
+    try {
+      await createUserWithEmailAndPassword(auth, email, pass);
+      router.push('/events');
+    } catch (error: any) {
+      toast({ title: "Sign Up Failed", description: error.message, variant: "destructive" });
     }
   };
 
   const signOut = async () => {
     const auth = getFirebaseAuth();
     if (!auth) {
-      toast({
-        title: "Feature Unavailable",
-        description: "Firebase is not configured.",
-        variant: "destructive"
-      });
-      return;
+        toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+        return;
     }
     try {
       await firebaseSignOut(auth);
       router.push('/login');
-    } catch (error) {
-      console.error("Error signing out", error);
-       toast({
-        title: "Sign-out Error",
-        description: "Could not sign out. Please try again.",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, isFirebaseReady: isFirebaseEnabled }}>
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut, isFirebaseReady: isFirebaseEnabled }}>
       {children}
     </AuthContext.Provider>
   );
