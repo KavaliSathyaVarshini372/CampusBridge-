@@ -22,14 +22,14 @@ if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (e) {
-    console.error("Failed to initialize Firebase. Please check your .env file and Firebase project configuration.", e);
+    console.error("Failed to initialize Firebase. Please check your .env.local file and Firebase project configuration.", e);
     // Set to null if initialization fails
     app = null;
     auth = null;
     db = null;
   }
 } else {
-    console.warn("Firebase API key is missing or is a placeholder. Firebase features will be disabled. Please add your Firebase configuration to the .env file.");
+    console.warn("Firebase API key is missing or is a placeholder. Firebase features will be disabled. Please add your Firebase configuration to the .env.local file.");
 }
 
 
