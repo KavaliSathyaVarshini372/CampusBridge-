@@ -88,7 +88,6 @@ function ExpressInterestButton({ postId, interestedUsers }: { postId: string, in
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const { user } = useAuth();
-    const router = useRouter();
 
     if (!user) return null;
 
@@ -168,6 +167,7 @@ export default function CollaboratePage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isPending, startTransition] = useTransition();
     const { user } = useAuth();
+    const isAdmin = !!user;
 
     const category = searchParams.get('category') || 'all';
 
@@ -199,7 +199,7 @@ export default function CollaboratePage() {
             <h1 className="text-3xl font-bold">Collaboration Portal</h1>
             <p className="text-muted-foreground">Find partners for your next big idea.</p>
             </div>
-            <NewCollaborationPostDialog />
+            {isAdmin && <NewCollaborationPostDialog />}
         </div>
 
         <div className="flex items-center gap-4 mb-8">
@@ -241,7 +241,7 @@ export default function CollaboratePage() {
                                 </p>
                             </div>
                             </div>
-                            {user?.uid !== post.authorId && (
+                            {isAdmin && (
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon">
@@ -249,7 +249,6 @@ export default function CollaboratePage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    <DropdownMenuItem>View Profile</DropdownMenuItem>
                                     <ReportDialog postId={post.id} />
                                 </DropdownMenuContent>
                                 </DropdownMenu>
@@ -264,9 +263,7 @@ export default function CollaboratePage() {
                         <CardDescription>{post.description}</CardDescription>
                         </CardContent>
                         <CardFooter className="bg-secondary/30 flex justify-between items-center p-4">
-                             {user?.uid === post.authorId ? (
-                                <Button disabled className="w-full">You are the author</Button>
-                             ) : (
+                             {isAdmin && (
                                 <ExpressInterestButton postId={post.id} interestedUsers={post.interestedUsers} />
                              )}
                              <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -22,6 +22,7 @@ import {
   Newspaper,
   Shield,
   LogOut,
+  LogIn,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -50,16 +51,9 @@ function NavSkeleton() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, loading, signOut, isFirebaseReady } = useAuth();
+  const { user, loading, signOut } = useAuth();
   
-  useEffect(() => {
-    if (isFirebaseReady && !loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router, isFirebaseReady]);
-
-  if (!isFirebaseReady || loading || !user) {
+  if (loading) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -70,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const userRole = user?.email === 'admin@example.com' ? 'admin' : 'user';
+  const isAdmin = !!user;
 
   return (
     <SidebarProvider>
@@ -82,7 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                if (item.admin && userRole !== 'admin') return null;
+                if (item.admin && !isAdmin) return null;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -107,10 +101,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
-                  <LogOut />
-                  <span>Logout</span>
-                </SidebarMenuButton>
+                {isAdmin ? (
+                  <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
+                    <LogOut />
+                    <span>Logout</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton asChild tooltip={{children: "Admin Login", side: "right", align: "center"}}>
+                    <Link href="/admin/login">
+                      <LogIn />
+                      <span>Admin Login</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>

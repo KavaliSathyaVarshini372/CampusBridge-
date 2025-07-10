@@ -18,6 +18,7 @@ let firebaseApp: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
+// Singleton pattern to initialize Firebase
 export function initializeFirebase() {
     if (isFirebaseEnabled && !getApps().length) {
         firebaseApp = initializeApp(firebaseConfig);
@@ -30,8 +31,3 @@ export function initializeFirebase() {
     }
     return { firebaseApp, auth, db };
 }
-
-// Initialize on load for server components
-initializeFirebase();
-
-export const firestoreDb = db;
