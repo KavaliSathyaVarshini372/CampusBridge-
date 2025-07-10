@@ -5,8 +5,44 @@ import { arrayRemove, arrayUnion, collection, doc, getDocs, orderBy, query, upda
 import { firestoreDb } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
+const MOCK_EVENTS = [
+    {
+      id: '1',
+      title: 'Annual Tech Summit',
+      date: '2024-10-26T10:00:00Z',
+      time: '10:00 AM - 5:00 PM',
+      location: 'Main Auditorium',
+      description: 'Join us for a day of insightful talks and workshops from industry leaders in technology.',
+      image: 'https://placehold.co/600x400.png',
+      aiHint: 'tech conference',
+      rsvps: [],
+    },
+    {
+      id: '2',
+      title: 'Fall Career Fair',
+      date: '2024-11-15T09:00:00Z',
+      time: '9:00 AM - 4:00 PM',
+      location: 'University Gymnasium',
+      description: 'Connect with top employers from various industries. Bring your resume!',
+      image: 'https://placehold.co/600x400.png',
+      aiHint: 'career fair',
+      rsvps: [],
+    },
+    {
+      id: '3',
+      title: 'Hackathon 2024',
+      date: '2024-11-22T18:00:00Z',
+      time: '6:00 PM (Fri) - 6:00 PM (Sun)',
+      location: 'Engineering Building',
+      description: 'A 48-hour coding marathon. Build something amazing and win prizes!',
+      image: 'https://placehold.co/600x400.png',
+      aiHint: 'students coding',
+      rsvps: [],
+    },
+];
+
 export async function getEvents() {
-    if (!firestoreDb) return [];
+    if (!firestoreDb) return MOCK_EVENTS;
 
     try {
         const eventsRef = collection(firestoreDb, 'events');
@@ -20,9 +56,20 @@ export async function getEvents() {
                 date: data.date,
             };
         });
+        
+        // If there are no events in Firestore, return mock data.
+        if (events.length === 0) {
+            return MOCK_EVENTS;
+        }
+
         return events;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching events:', error);
+        // If there's a permission error, return mock data as a fallback.
+        if (error.code === 'permission-denied') {
+            console.log("Firestore permission denied. Returning mock data.");
+            return MOCK_EVENTS;
+        }
         return [];
     }
 }
