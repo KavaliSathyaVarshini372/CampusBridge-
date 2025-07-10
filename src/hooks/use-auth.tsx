@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext, createContext, useCallback } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, Auth } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, Auth } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -33,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return () => unsubscribe();
     } else {
-      // Firebase not configured, so we are not in a loading state.
       setLoading(false);
     }
   }, []);
@@ -45,11 +45,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await signInWithEmailAndPassword(firebaseAuth, email, pass);
-      router.push('/admin');
-      toast({ title: "Login Successful", description: "Welcome back, Admin!" });
+      router.push('/events');
+      toast({ title: "Login Successful", description: "Welcome back!" });
     } catch (error: any) {
       console.error(error);
-      toast({ title: "Login Failed", description: "Invalid credentials.", variant: "destructive" });
+      const errorCode = error.code;
+      let errorMessage = "An unknown error occurred.";
+      if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password.";
+      }
+      toast({ title: "Login Failed", description: errorMessage, variant: "destructive" });
+    }
+  }, [firebaseAuth, router, toast]);
+
+  const signUpWithEmail = useCallback(async (email: string, pass: string) => {
+    if (!firebaseAuth) {
+        toast({ title: "Error", description: "Authentication is not configured.", variant: "destructive" });
+        return;
+    }
+    try {
+      await createUserWithEmailAndPassword(firebaseAuth, email, pass);
+      router.push('/events');
+      toast({ title: "Sign Up Successful", description: "Welcome to CampusBridge+!" });
+    } catch (error: any) {
+      console.error(error);
+      const errorCode = error.code;
+      let errorMessage = "An unknown error occurred.";
+       if (errorCode === 'auth/email-already-in-use') {
+        errorMessage = "This email address is already in use.";
+      } else if (errorCode === 'auth/weak-password') {
+        errorMessage = "The password is too weak.";
+      }
+      toast({ title: "Sign Up Failed", description: errorMessage, variant: "destructive" });
     }
   }, [firebaseAuth, router, toast]);
 
@@ -60,14 +87,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await firebaseSignOut(firebaseAuth);
-      router.push('/');
+      router.push('/events');
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
   }, [firebaseAuth, router, toast]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );

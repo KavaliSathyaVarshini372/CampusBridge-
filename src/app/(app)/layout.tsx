@@ -1,7 +1,7 @@
 
 "use client";
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   SidebarProvider,
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -37,17 +37,6 @@ const navItems = [
   { href: '/contact', icon: MessageSquare, label: 'Contact Us' },
   { href: '/admin', icon: Shield, label: 'Admin', admin: true },
 ];
-
-function NavSkeleton() {
-  return (
-    <div className="flex flex-col gap-2 p-2">
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-    </div>
-  )
-}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -64,7 +53,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const isAdmin = !!user;
+  const isAdmin = user?.email === 'admin@example.com';
+  const isAuthenticated = !!user;
 
   return (
     <SidebarProvider>
@@ -101,16 +91,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                {isAdmin ? (
+                {isAuthenticated ? (
                   <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
                     <LogOut />
                     <span>Logout</span>
                   </SidebarMenuButton>
                 ) : (
-                  <SidebarMenuButton asChild tooltip={{children: "Admin Login", side: "right", align: "center"}}>
-                    <Link href="/admin/login">
+                  <SidebarMenuButton asChild tooltip={{children: "Login / Sign Up", side: "right", align: "center"}}>
+                    <Link href="/login">
                       <LogIn />
-                      <span>Admin Login</span>
+                      <span>Login / Sign Up</span>
                     </Link>
                   </SidebarMenuButton>
                 )}

@@ -88,8 +88,9 @@ function ExpressInterestButton({ postId, interestedUsers }: { postId: string, in
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const { user } = useAuth();
+    const router = useRouter();
 
-    if (!user) return null;
+    if (!user) return <Button onClick={() => router.push('/login')} className="w-full">Login to Express Interest</Button>;
 
     const isInterested = interestedUsers.includes(user.uid);
     
@@ -167,7 +168,8 @@ export default function CollaboratePage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isPending, startTransition] = useTransition();
     const { user } = useAuth();
-    const isAdmin = !!user;
+    const isAdmin = user?.email === 'admin@example.com';
+    const isAuthenticated = !!user;
 
     const category = searchParams.get('category') || 'all';
 
@@ -241,7 +243,7 @@ export default function CollaboratePage() {
                                 </p>
                             </div>
                             </div>
-                            {isAdmin && (
+                            {isAuthenticated && (
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon">
@@ -263,9 +265,7 @@ export default function CollaboratePage() {
                         <CardDescription>{post.description}</CardDescription>
                         </CardContent>
                         <CardFooter className="bg-secondary/30 flex justify-between items-center p-4">
-                             {isAdmin && (
-                                <ExpressInterestButton postId={post.id} interestedUsers={post.interestedUsers} />
-                             )}
+                            <ExpressInterestButton postId={post.id} interestedUsers={post.interestedUsers} />
                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Users className="h-4 w-4" />
                                 <span>{post.interestedUsers.length}</span>

@@ -4,14 +4,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { getEvents } from '@/app/actions/events';
 import { RsvpButton } from '@/components/rsvp-button';
-import { getAuthenticatedUser } from '@/lib/auth';
 
 export const revalidate = 0; // Revalidate this page on every request
 
 export default async function EventsPage() {
     const events = await getEvents() as any[];
-    const user = await getAuthenticatedUser();
-    const isAdmin = !!user;
 
   return (
     <div>
@@ -50,7 +47,7 @@ export default async function EventsPage() {
               <CardDescription className='mt-4'>{event.description}</CardDescription>
             </CardContent>
             <CardFooter className="flex justify-between items-center bg-secondary/30 p-4">
-               {isAdmin ? <RsvpButton eventId={event.id} rsvps={event.rsvps} /> : <div></div>}
+              <RsvpButton eventId={event.id} rsvps={event.rsvps} />
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>{event.rsvps?.length || 0} attending</span>

@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { toggleRsvp } from '@/app/actions/events';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
 interface RsvpButtonProps {
     eventId: string;
@@ -16,9 +17,10 @@ export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const { user } = useAuth();
+    const router = useRouter();
     
     if (!user) {
-        return null;
+        return <Button onClick={() => router.push('/login')}>Login to RSVP</Button>;
     }
     
     const isRsvpd = rsvps?.includes(user.uid);
