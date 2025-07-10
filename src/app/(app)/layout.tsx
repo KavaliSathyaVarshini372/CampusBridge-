@@ -25,7 +25,9 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   { href: '/events', icon: Calendar, label: 'Events' },
@@ -35,11 +37,40 @@ const navItems = [
   { href: '/admin', icon: Shield, label: 'Admin', admin: true },
 ];
 
+function NavSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 p-2">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+    </div>
+  )
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // For now, we'll assume any logged-in user can be an admin for demo purposes.
-  // A real app would have role management in the database.
-  const userRole = 'admin'; // Assume admin for now to see all nav items
+  const router = useRouter();
+  const { user, loading, signOut, isFirebaseReady } = useAuth();
+  
+  useEffect(() => {
+    if (isFirebaseReady && !loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router, isFirebaseReady]);
+
+  if (!isFirebaseReady || loading || !user) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+            <Logo />
+            <Skeleton className="h-8 w-48 mt-4" />
+        </div>
+      </div>
+    );
+  }
+  
+  const userRole = user?.email === 'admin@example.com' ? 'admin' : 'user';
 
   return (
     <SidebarProvider>
@@ -74,14 +105,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
-            {/* <SidebarMenu>
+            <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => {}} tooltip={{children: "Logout", side: "right", align: "center"}}>
+                <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
                   <LogOut />
                   <span>Logout</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu> */}
+            </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>

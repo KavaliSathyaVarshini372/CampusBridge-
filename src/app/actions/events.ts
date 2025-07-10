@@ -2,64 +2,55 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { firestoreDb } from '@/lib/firebase';
+import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, orderBy } from 'firebase/firestore';
+import { getAuthenticatedUser } from '@/lib/auth';
 
-const MOCK_EVENTS = [
-    {
-      id: '1',
-      title: 'Annual Tech Summit',
-      date: '2024-10-26T10:00:00Z',
-      time: '10:00 AM - 5:00 PM',
-      location: 'Main Auditorium',
-      description: 'Join us for a day of insightful talks and workshops from industry leaders in technology.',
-      image: 'https://placehold.co/600x400.png',
-      aiHint: 'tech conference',
-      rsvps: [],
-    },
-    {
-      id: '2',
-      title: 'Fall Career Fair',
-      date: '2024-11-15T09:00:00Z',
-      time: '9:00 AM - 4:00 PM',
-      location: 'University Gymnasium',
-      description: 'Connect with top employers from various industries. Bring your resume!',
-      image: 'https://placehold.co/600x400.png',
-      aiHint: 'career fair',
-      rsvps: ['guest-user'],
-    },
-    {
-      id: '3',
-      title: 'Hackathon 2024',
-      date: '2024-11-22T18:00:00Z',
-      time: '6:00 PM (Fri) - 6:00 PM (Sun)',
-      location: 'Engineering Building',
-      description: 'A 48-hour coding marathon. Build something amazing and win prizes!',
-      image: 'https://placehold.co/600x400.png',
-      aiHint: 'students coding',
-      rsvps: [],
-    },
-];
-
-// This is an in-memory store. Data will reset on server restart.
-let eventsStore = [...MOCK_EVENTS];
-
-export async function getEvents() {
-    return [...eventsStore].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+if (!firestoreDb) {
+    throw new Error("Firestore is not initialized.");
 }
 
+const eventsCollection = collection(firestoreDb, 'events');
+
+export async function getEvents() {
+    const q = query(eventsCollection, orderBy('date', 'asc'));
+    const eventSnapshot = await getDocs(q);
+    const events = eventSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            title: data.title,
+            date: data.date.toDate().toISOString(),
+            time: data.time,
+            location: data.location,
+            description: data.description,
+            image: data.image,
+            aiHint: data.aiHint,
+            rsvps: data.rsvps || [],
+        };
+    });
+    return events;
+}
+
+
 export async function toggleRsvp(eventId: string) {
-    const event = eventsStore.find(e => e.id === eventId);
-    if (!event) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        return { success: false, message: "You must be logged in to RSVP" };
+    }
+
+    const eventDocRef = doc(firestoreDb, 'events', eventId);
+    const eventDoc = await getDoc(eventDocRef);
+
+    if (!eventDoc.exists()) {
         return { success: false, message: "Event not found" };
     }
-
-    const mockUserId = 'guest-user'; // Auth is disabled
-    const isRsvpd = event.rsvps.includes(mockUserId);
-
-    if (isRsvpd) {
-        event.rsvps = event.rsvps.filter(id => id !== mockUserId);
-    } else {
-        event.rsvps.push(mockUserId);
-    }
+    
+    const isRsvpd = eventDoc.data().rsvps?.includes(user.uid);
+    
+    await updateDoc(eventDocRef, {
+        rsvps: isRsvpd ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
     
     revalidatePath('/events');
     return { success: true, isRsvpd: !isRsvpd };

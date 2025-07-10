@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
 
 type Post = {
     id: string;
@@ -83,30 +84,20 @@ function PostSkeleton() {
     )
 }
 
-function ExpressInterestButton({ post, onInterestToggle }: { post: Post, onInterestToggle: (postId: string, isInterested: boolean) => void }) {
+function ExpressInterestButton({ postId, interestedUsers }: { postId: string, interestedUsers: string[] }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const { user } = useAuth();
+    const router = useRouter();
 
-    // Auth disabled
-    const mockUserId = "guest-user";
-    const isInterested = post.interestedUsers.includes(mockUserId);
-    const isAuthor = post.authorId === mockUserId;
+    if (!user) return null;
 
-    if (isAuthor) {
-        return (
-            <Button disabled className="w-full">
-                You are the author
-            </Button>
-        );
-    }
+    const isInterested = interestedUsers.includes(user.uid);
     
     const handleClick = () => {
         startTransition(async () => {
-            const result = await toggleInterest(post.id);
-            if (result.success) {
-                toast({ title: 'Success', description: isInterested ? 'Interest removed.' : 'You have expressed interest!' });
-                onInterestToggle(post.id, !isInterested);
-            } else {
+            const result = await toggleInterest(postId);
+            if (!result.success) {
                 toast({ title: 'Error', description: result.message, variant: 'destructive' });
             }
         });
@@ -176,13 +167,18 @@ export default function CollaboratePage() {
     const searchParams = useSearchParams();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isPending, startTransition] = useTransition();
+    const { user } = useAuth();
 
     const category = searchParams.get('category') || 'all';
 
     useEffect(() => {
         startTransition(async () => {
-            const fetchedPosts = await getCollaborationPosts(category) as Post[];
-            setPosts(fetchedPosts);
+            try {
+                const fetchedPosts = await getCollaborationPosts(category) as Post[];
+                setPosts(fetchedPosts);
+            } catch (error) {
+                console.error("Failed to fetch posts:", error);
+            }
         })
     }, [category]);
 
@@ -194,21 +190,6 @@ export default function CollaboratePage() {
             params.set('category', value);
         }
         router.push(`/collaborate?${params.toString()}`);
-    };
-
-    const handleInterestToggle = (postId: string, isInterested: boolean) => {
-        const mockUserId = "guest-user";
-        setPosts(prevPosts =>
-            prevPosts.map(p => {
-                if (p.id === postId) {
-                    const interestedUsers = isInterested
-                        ? [...p.interestedUsers, mockUserId]
-                        : p.interestedUsers.filter(id => id !== mockUserId);
-                    return { ...p, interestedUsers };
-                }
-                return p;
-            })
-        );
     };
 
     return (
@@ -260,17 +241,19 @@ export default function CollaboratePage() {
                                 </p>
                             </div>
                             </div>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                <ReportDialog postId={post.id} />
-                            </DropdownMenuContent>
-                            </DropdownMenu>
+                            {user?.uid !== post.authorId && (
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem>View Profile</DropdownMenuItem>
+                                    <ReportDialog postId={post.id} />
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                         </div>
                         </CardHeader>
                         <CardContent className="flex-grow">
@@ -281,7 +264,11 @@ export default function CollaboratePage() {
                         <CardDescription>{post.description}</CardDescription>
                         </CardContent>
                         <CardFooter className="bg-secondary/30 flex justify-between items-center p-4">
-                             <ExpressInterestButton post={post} onInterestToggle={handleInterestToggle} />
+                             {user?.uid === post.authorId ? (
+                                <Button disabled className="w-full">You are the author</Button>
+                             ) : (
+                                <ExpressInterestButton postId={post.id} interestedUsers={post.interestedUsers} />
+                             )}
                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Users className="h-4 w-4" />
                                 <span>{post.interestedUsers.length}</span>

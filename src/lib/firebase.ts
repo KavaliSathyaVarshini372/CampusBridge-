@@ -14,24 +14,24 @@ const firebaseConfig = {
 
 export const isFirebaseEnabled = !!(firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE");
 
-function getFirebaseApp(): FirebaseApp | null {
-  if (!isFirebaseEnabled) {
-    return null;
-  }
-  return getApps().length ? getApp() : initializeApp(firebaseConfig);
-}
-
-// Global instances for server-side usage
+let firebaseApp: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-if(isFirebaseEnabled) {
-    const app = getFirebaseApp();
-    if (app) {
-        auth = getAuth(app);
-        db = getFirestore(app);
+
+export function initializeFirebase() {
+    if (isFirebaseEnabled && !getApps().length) {
+        firebaseApp = initializeApp(firebaseConfig);
+        auth = getAuth(firebaseApp);
+        db = getFirestore(firebaseApp);
+    } else if (isFirebaseEnabled && getApps().length) {
+        firebaseApp = getApp();
+        auth = getAuth(firebaseApp);
+        db = getFirestore(firebaseApp);
     }
+    return { firebaseApp, auth, db };
 }
 
-export const firebaseApp = getFirebaseApp();
-export const firebaseAuth = auth;
+// Initialize on load for server components
+initializeFirebase();
+
 export const firestoreDb = db;

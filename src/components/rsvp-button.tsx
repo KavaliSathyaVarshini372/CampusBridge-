@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { toggleRsvp } from '@/app/actions/events';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 
 interface RsvpButtonProps {
     eventId: string;
@@ -16,10 +17,13 @@ export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const { user } = useAuth();
     
-    // Auth is disabled
-    const mockUserId = 'guest-user';
-    const isRsvpd = rsvps?.includes(mockUserId);
+    if (!user) {
+        return <Button disabled>Login to RSVP</Button>;
+    }
+    
+    const isRsvpd = rsvps?.includes(user.uid);
 
     const handleRsvp = () => {
         startTransition(async () => {
@@ -30,8 +34,6 @@ export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
                         title: 'Success',
                         description: result.isRsvpd ? 'You have successfully RSVP\'d!' : "You have successfully un-RSVP'd.",
                     });
-                    // Manually trigger a re-render by refreshing the page data
-                    router.refresh();
                 } else {
                      toast({
                         title: 'Error',

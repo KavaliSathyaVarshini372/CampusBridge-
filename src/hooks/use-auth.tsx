@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, Auth } from 'firebase/auth';
-import { isFirebaseEnabled, firebaseAuth as authInstance } from '@/lib/firebase';
+import { initializeFirebase } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -22,25 +22,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [firebaseAuth, setFirebaseAuth] = useState<Auth | null>(null);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isFirebaseEnabled) {
-      const auth = authInstance; 
+    const { auth } = initializeFirebase();
+    if (auth) {
       setFirebaseAuth(auth);
-
-      if (auth) {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          setUser(user);
-          setLoading(false);
-        });
-        return () => unsubscribe();
-      } else {
+      setIsFirebaseReady(true);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
         setLoading(false);
-      }
+      });
+      return () => unsubscribe();
     } else {
       setLoading(false);
+      setIsFirebaseReady(false);
     }
   }, []);
 
@@ -52,6 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await signInWithEmailAndPassword(firebaseAuth, email, pass);
       router.push('/events');
+      toast({ title: "Login Successful", description: "Welcome back!" });
     } catch (error: any) {
       console.error(error);
       toast({ title: "Login Failed", description: error.message, variant: "destructive" });
@@ -66,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await createUserWithEmailAndPassword(firebaseAuth, email, pass);
       router.push('/events');
+      toast({ title: "Sign Up Successful", description: "Welcome to CampusBridge+!" });
     } catch (error: any) {
       console.error(error);
       toast({ title: "Sign Up Failed", description: error.message, variant: "destructive" });
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut, isFirebaseReady: isFirebaseEnabled }}>
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut, isFirebaseReady }}>
       {children}
     </AuthContext.Provider>
   );

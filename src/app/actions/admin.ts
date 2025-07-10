@@ -2,58 +2,67 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { firestoreDb } from '@/lib/firebase';
+import { collection, getDocs, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
+import { getAuthenticatedUser } from '@/lib/auth';
 
-const MOCK_REPORTS = [
-    {
-        id: 'rep-1',
-        itemType: 'Collaboration Post',
-        reportedBy: 'Guest User',
-        reason: 'This is spam.',
-        date: new Date(Date.now() - 86400000 * 2).toISOString(),
-        status: 'Pending',
-        itemId: 'cl-2',
-    },
-    {
-        id: 'rep-2',
-        itemType: 'User Profile',
-        reportedBy: 'Another User',
-        reason: 'Inappropriate profile picture.',
-        date: new Date(Date.now() - 86400000 * 3).toISOString(),
-        status: 'Resolved',
-        itemId: 'user-3',
-    }
-];
-
-// This is an in-memory store. Data will reset on server restart.
-let reportsStore = [...MOCK_REPORTS];
+if (!firestoreDb) {
+    throw new Error("Firestore is not initialized.");
+}
 
 export async function getReports() {
-    // We return a sorted copy to simulate a real database query
-    return [...reportsStore].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const reportsCollection = collection(firestoreDb, 'reports');
+    const q = query(reportsCollection, orderBy('date', 'desc'));
+    const reportSnapshot = await getDocs(q);
+    const reports = reportSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            itemType: data.itemType,
+            reportedBy: data.reportedBy,
+            reason: data.reason,
+            date: data.date.toDate().toISOString(),
+            status: data.status,
+            itemId: data.itemId
+        }
+    });
+    return reports;
 }
 
 export async function addReport(itemId: string, itemType: string, reason: string) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        return { success: false, message: 'You must be logged in to report a post.' };
+    }
+
+    const postDocRef = doc(firestoreDb, 'collaborations', itemId);
+    const postDoc = await getDoc(postDocRef);
+
+    if (!postDoc.exists()) {
+        return { success: false, message: 'The post you are trying to report does not exist.' };
+    }
+    
     const newReport = {
-        id: `rep-${Date.now()}`,
         itemType,
-        reportedBy: 'Guest User', // Auth is disabled
+        reportedBy: user.email,
         reason,
-        date: new Date().toISOString(),
+        date: serverTimestamp(),
         status: 'Pending',
         itemId,
     };
-    reportsStore.unshift(newReport); // Add to the beginning of the array
+    await addDoc(collection(firestoreDb, 'reports'), newReport);
     revalidatePath('/admin');
-    revalidatePath('/collaborate');
     return { success: true, message: 'Report submitted successfully. Our team will review it.' };
 }
 
 export async function updateReportStatus(reportId: string, status: 'Resolved' | 'Dismissed') {
-    const reportIndex = reportsStore.findIndex(r => r.id === reportId);
-    if (reportIndex !== -1) {
-        reportsStore[reportIndex].status = status;
-        revalidatePath('/admin');
-        return { success: true, message: `Report status updated to ${status}.` };
+    const user = await getAuthenticatedUser();
+    if (user?.role !== 'admin') {
+         return { success: false, message: 'You do not have permission to perform this action.' };
     }
-    return { success: false, message: 'Report not found.' };
+
+    const reportDoc = doc(firestoreDb, 'reports', reportId);
+    await updateDoc(reportDoc, { status });
+    revalidatePath('/admin');
+    return { success: true, message: `Report status updated to ${status}.` };
 }
