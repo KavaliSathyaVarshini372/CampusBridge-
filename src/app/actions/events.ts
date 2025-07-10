@@ -14,13 +14,20 @@ async function getAuthOrThrow() {
   if (firebaseAuth) {
     return firebaseAuth;
   }
-  const header = headers();
-  const session = header.get("x-firebase-session");
+  const headerList = headers();
+  const session = headerList.get("x-firebase-session");
   if (session) {
     const app = getApps().length > 0 ? getApp() : initializeApp({});
     const auth = getAuth(app);
-    await auth.updateCurrentUser(JSON.parse(session));
-    return auth;
+    try {
+        const userCredential = await auth.signInWithCustomToken(session);
+        return auth;
+    } catch(e) {
+        console.error(e);
+        const newAuth = getAuth(getApp());
+        await newAuth.updateCurrentUser(JSON.parse(session));
+        return newAuth;
+    }
   }
   return null;
 }
