@@ -2,12 +2,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { initializeFirebase } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
 const getDb = () => {
-    const { db } = initializeFirebase();
+    const { db } = getFirebase();
     if (!db) {
         throw new Error("Firestore is not initialized.");
     }
@@ -68,7 +68,7 @@ export async function addReport(itemId: string, itemType: string, reason: string
 
 export async function updateReportStatus(reportId: string, status: 'Resolved' | 'Dismissed') {
     const user = await getAuthenticatedUser();
-    if (!user) {
+    if (user?.email !== 'admin@example.com') {
          return { success: false, message: 'You do not have permission to perform this action.' };
     }
 

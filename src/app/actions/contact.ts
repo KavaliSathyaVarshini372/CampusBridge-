@@ -3,11 +3,11 @@
 
 import { z } from 'zod';
 import { ContactFormSchema } from '@/lib/schemas';
-import { initializeFirebase } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export async function saveContactInquiry(values: z.infer<typeof ContactFormSchema>) {
-  const { db } = initializeFirebase();
+  const { db } = getFirebase();
   if (!db) {
     return { success: false, message: 'Database service is not available.' };
   }

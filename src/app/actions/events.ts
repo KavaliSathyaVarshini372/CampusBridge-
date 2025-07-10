@@ -2,12 +2,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { initializeFirebase } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, orderBy } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
 const getDb = () => {
-    const { db } = initializeFirebase();
+    const { db } = getFirebase();
     if (!db) {
         throw new Error("Firestore is not initialized.");
     }

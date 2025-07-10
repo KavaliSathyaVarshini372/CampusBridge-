@@ -5,12 +5,12 @@ import { z } from 'zod';
 import { CollaborationPostSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
 import { addReport } from './admin';
-import { initializeFirebase } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, arrayUnion, arrayRemove, query, where, serverTimestamp, orderBy, getDoc } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
 const getDb = () => {
-    const { db } = initializeFirebase();
+    const { db } = getFirebase();
     if (!db) {
         throw new Error("Firestore is not initialized.");
     }
@@ -66,8 +66,8 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     }
     
     const user = await getAuthenticatedUser();
-    if (!user) {
-        return { success: false, message: 'You must be logged in to create a post.' };
+    if (user?.email !== 'admin@example.com') {
+        return { success: false, message: 'You do not have permission to create a post.' };
     }
 
     const postsCollection = getPostsCollection();

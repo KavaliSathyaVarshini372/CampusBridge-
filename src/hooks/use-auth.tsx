@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useContext, createContext, useCallback } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, Auth } from 'firebase/auth';
-import { initializeFirebase } from '@/lib/firebase';
+import { getFirebase } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -20,23 +20,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [firebaseAuth, setFirebaseAuth] = useState<Auth | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  
+  // Get auth instance directly. It's guaranteed to be initialized.
+  const { auth: firebaseAuth } = getFirebase();
 
   useEffect(() => {
-    const { auth } = initializeFirebase();
-    if (auth) {
-      setFirebaseAuth(auth);
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!firebaseAuth) {
+        setLoading(false);
+        return;
+    }
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
         setUser(user);
         setLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    });
+    return () => unsubscribe();
+  }, [firebaseAuth]);
 
   const signInWithEmail = useCallback(async (email: string, pass: string) => {
     if (!firebaseAuth) {
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await firebaseSignOut(firebaseAuth);
-      router.push('/events');
+      router.push('/login');
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
