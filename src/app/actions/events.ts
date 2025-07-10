@@ -17,14 +17,16 @@ async function getAuthOrThrow() {
   const headerList = headers();
   const session = headerList.get("x-firebase-session");
   if (session) {
-    const app = getApps().length > 0 ? getApp() : initializeApp({});
+    // Because firebase is already initialized in firebase.ts, we can just get the app
+    const app = getApps()[0];
     const auth = getAuth(app);
     try {
-        const userCredential = await auth.signInWithCustomToken(session);
+        await auth.signInWithCustomToken(session);
         return auth;
     } catch(e) {
-        console.error(e);
-        const newAuth = getAuth(getApp());
+        console.error("Error signing in with custom token in server action:", e);
+        // Fallback for some environments
+        const newAuth = getAuth(app);
         await newAuth.updateCurrentUser(JSON.parse(session));
         return newAuth;
     }

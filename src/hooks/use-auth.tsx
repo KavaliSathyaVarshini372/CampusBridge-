@@ -27,7 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (isFirebaseEnabled) {
-      const auth = initializeFirebase();
+      // Use the globally initialized auth instance from firebase.ts
+      const auth = authInstance; 
       setFirebaseAuth(auth);
 
       const unsubscribe = onAuthStateChanged(auth, (user) => {
