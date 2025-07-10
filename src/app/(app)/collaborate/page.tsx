@@ -19,13 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getCollaborationPosts, toggleInterest } from '@/app/actions/collaborate';
+import { getCollaborationPosts, reportPost, toggleInterest } from '@/app/actions/collaborate';
 import { useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 type Post = {
     id: string;
@@ -116,6 +119,58 @@ function ExpressInterestButton({ post, onInterestToggle }: { post: Post, onInter
             {isPending ? "Updating..." : isInterested ? "Remove Interest" : "Express Interest"}
         </Button>
     )
+}
+
+function ReportDialog({ postId }: { postId: string }) {
+    const { toast } = useToast();
+    const [reason, setReason] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+
+    const handleSubmit = () => {
+        if (reason.trim().length < 10) {
+            toast({ title: 'Error', description: 'Please provide a reason with at least 10 characters.', variant: 'destructive' });
+            return;
+        }
+        startTransition(async () => {
+            const result = await reportPost(postId, reason);
+            if (result.success) {
+                toast({ title: 'Report Submitted', description: result.message });
+                setIsOpen(false);
+                setReason('');
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        })
+    }
+
+    return (
+        <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+            <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                    Report
+                </DropdownMenuItem>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Report Post</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Please provide a reason for reporting this post. Your feedback helps us keep the community safe.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="grid gap-2">
+                    <Label htmlFor="reason">Reason</Label>
+                    <Textarea id="reason" placeholder="e.g., Inappropriate content, spam, etc." value={reason} onChange={(e) => setReason(e.target.value)} />
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSubmit} disabled={isPending}>
+                        {isPending ? "Submitting..." : "Submit Report"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 }
 
 export default function CollaboratePage() {
@@ -216,7 +271,7 @@ export default function CollaboratePage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
                                 <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Report</DropdownMenuItem>
+                                <ReportDialog postId={post.id} />
                             </DropdownMenuContent>
                             </DropdownMenu>
                         </div>

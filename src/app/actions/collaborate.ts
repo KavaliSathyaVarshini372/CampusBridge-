@@ -106,3 +106,26 @@ export async function toggleInterest(postId: string) {
         return { success: false, message: 'Failed to update interest.' };
     }
 }
+
+export async function reportPost(postId: string, reason: string) {
+    if (!db || !auth?.currentUser) {
+        return { success: false, message: 'You must be logged in to report a post.' };
+    }
+
+    const { uid, email } = auth.currentUser;
+
+    try {
+        await addDoc(collection(db, 'reports'), {
+            itemId: postId,
+            itemType: 'Collaboration Post',
+            reportedBy: email || uid,
+            reason: reason,
+            status: 'Pending',
+            date: new Date().toISOString(),
+        });
+        return { success: true, message: 'Post reported successfully. Our team will review it.' };
+    } catch (error) {
+        console.error('Error reporting post:', error);
+        return { success: false, message: 'Failed to report post.' };
+    }
+}
