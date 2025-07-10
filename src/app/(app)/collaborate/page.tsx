@@ -24,7 +24,6 @@ import { useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
@@ -85,14 +84,13 @@ function PostSkeleton() {
 }
 
 function ExpressInterestButton({ post, onInterestToggle }: { post: Post, onInterestToggle: (postId: string, isInterested: boolean) => void }) {
-    const { user } = useAuth();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
-    if (!user) return null;
-
-    const isInterested = post.interestedUsers.includes(user.uid);
-    const isAuthor = post.authorId === user.uid;
+    // Auth disabled
+    const mockUserId = "guest-user";
+    const isInterested = post.interestedUsers.includes(mockUserId);
+    const isAuthor = post.authorId === mockUserId;
 
     if (isAuthor) {
         return (
@@ -176,7 +174,6 @@ function ReportDialog({ postId }: { postId: string }) {
 export default function CollaboratePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isPending, startTransition] = useTransition();
 
@@ -200,13 +197,13 @@ export default function CollaboratePage() {
     };
 
     const handleInterestToggle = (postId: string, isInterested: boolean) => {
-        if (!user) return;
+        const mockUserId = "guest-user";
         setPosts(prevPosts =>
             prevPosts.map(p => {
                 if (p.id === postId) {
                     const interestedUsers = isInterested
-                        ? [...p.interestedUsers, user.uid]
-                        : p.interestedUsers.filter(id => id !== user.uid);
+                        ? [...p.interestedUsers, mockUserId]
+                        : p.interestedUsers.filter(id => id !== mockUserId);
                     return { ...p, interestedUsers };
                 }
                 return p;

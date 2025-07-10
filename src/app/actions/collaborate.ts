@@ -3,39 +3,9 @@
 
 import { z } from 'zod';
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { firestoreDb, firebaseAuth } from '@/lib/firebase';
+import { firestoreDb } from '@/lib/firebase';
 import { CollaborationPostSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
-import { Auth, getAuth } from "firebase/auth";
-import { initializeApp, getApp, getApps } from "firebase/app";
-
-// This is a temporary workaround for a bug in Next.js
-// where server actions don't have access to the auth state
-async function getAuthOrThrow() {
-  if (firebaseAuth) {
-    return firebaseAuth;
-  }
-  const headerList = headers();
-  const session = headerList.get("x-firebase-session");
-  if (session) {
-    // Because firebase is already initialized in firebase.ts, we can just get the app
-    const app = getApps()[0]; 
-    const auth = getAuth(app);
-    try {
-        await auth.signInWithCustomToken(session);
-        return auth;
-    } catch(e) {
-        console.error("Error signing in with custom token in server action:", e);
-        // Fallback for some environments
-        const newAuth = getAuth(app);
-        await newAuth.updateCurrentUser(JSON.parse(session));
-        return newAuth;
-    }
-  }
-  return null;
-}
-
 
 export async function getCollaborationPosts(category?: string) {
     if (!firestoreDb) {
@@ -72,10 +42,8 @@ export async function getCollaborationPosts(category?: string) {
 
 
 export async function createCollaborationPost(values: z.infer<typeof CollaborationPostSchema>) {
-    const auth = await getAuthOrThrow();
-
-    if (!firestoreDb || !auth?.currentUser) {
-        return { success: false, message: 'Authentication or Database not configured.' };
+    if (!firestoreDb) {
+        return { success: false, message: 'Database not configured.' };
     }
 
     const validatedFields = CollaborationPostSchema.safeParse(values);
@@ -84,14 +52,19 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
         return { success: false, message: 'Invalid form data.' };
     }
 
-    const { uid, displayName, photoURL } = auth.currentUser;
+    // Auth is disabled
+    const mockUser = {
+        uid: 'guest-user',
+        displayName: 'Guest User',
+        photoURL: '',
+    };
 
     try {
         await addDoc(collection(firestoreDb, 'collaborations'), {
             ...validatedFields.data,
-            authorId: uid,
-            authorName: displayName || 'Anonymous',
-            authorAvatar: photoURL || '',
+            authorId: mockUser.uid,
+            authorName: mockUser.displayName,
+            authorAvatar: mockUser.photoURL,
             timestamp: serverTimestamp(),
             interestedUsers: [],
         });
@@ -105,54 +78,27 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
 }
 
 export async function toggleInterest(postId: string) {
-    const auth = await getAuthOrThrow();
-
-    if (!firestoreDb || !auth?.currentUser) {
-        return { success: false, message: 'You must be logged in to express interest.' };
-    }
-
-    const userId = auth.currentUser.uid;
-    const postRef = doc(firestoreDb, 'collaborations', postId);
-
-    try {
-        const postSnap = await getDoc(postRef);
-        if (!postSnap.exists()) {
-            return { success: false, message: 'Post not found.' };
-        }
-
-        const postData = postSnap.data();
-        const interestedUsers = postData.interestedUsers || [];
-
-        if (interestedUsers.includes(userId)) {
-            await updateDoc(postRef, {
-                interestedUsers: arrayRemove(userId)
-            });
-        } else {
-            await updateDoc(postRef, {
-                interestedUsers: arrayUnion(userId)
-            });
-        }
-        revalidatePath('/collaborate');
-        return { success: true, message: 'Interest updated.' };
-    } catch (error) {
-        console.error('Error toggling interest:', error);
-        return { success: false, message: 'Failed to update interest.' };
-    }
+    // Auth is disabled
+    console.log(`Interest toggled for post ${postId}. Auth is disabled.`);
+    return { success: true, message: 'Interest updated (simulation).' };
 }
 
 export async function reportPost(postId: string, reason: string) {
-    const auth = await getAuthOrThrow();
-    if (!firestoreDb || !auth?.currentUser) {
-        return { success: false, message: 'You must be logged in to report a post.' };
+    if (!firestoreDb) {
+        return { success: false, message: 'Database not configured.' };
     }
 
-    const { uid, email } = auth.currentUser;
+     // Auth is disabled
+    const mockUser = {
+        uid: 'guest-user',
+        email: 'guest@example.com',
+    };
 
     try {
         await addDoc(collection(firestoreDb, 'reports'), {
             itemId: postId,
             itemType: 'Collaboration Post',
-            reportedBy: email || uid,
+            reportedBy: mockUser.email,
             reason: reason,
             status: 'Pending',
             date: new Date().toISOString(),

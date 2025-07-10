@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -16,38 +17,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-import { useAuth } from "@/hooks/use-auth";
-import { Skeleton } from "./ui/skeleton";
 
 export function UserNav() {
-  const { user, signOut, loading } = useAuth();
-
-  if (loading) {
-    return <Skeleton className="h-9 w-9 rounded-full" />;
-  }
-
-  if (!user) {
-    return (
-      <Button asChild>
-        <Link href="/login">Log In</Link>
-      </Button>
-    )
-  }
+  // Authentication is disabled for now
+  const user = {
+    displayName: "Guest User",
+    email: "guest@example.com",
+    photoURL: `https://placehold.co/40x40.png`,
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png`} alt={user.displayName || "User"} data-ai-hint="person face" />
-            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+            <AvatarImage src={user.photoURL} alt={user.displayName} data-ai-hint="person face" />
+            <AvatarFallback>G</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.displayName || "Student User"}</p>
+            <p className="text-sm font-medium leading-none">{user.displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
@@ -55,15 +47,11 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="#">Profile</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="#">Settings</Link>
-          </DropdownMenuItem>
+          <DropdownMenuItem disabled>Profile</DropdownMenuItem>
+          <DropdownMenuItem disabled>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+        <DropdownMenuItem disabled>
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

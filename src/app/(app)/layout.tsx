@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -24,9 +25,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
-import { useAuth } from '@/hooks/use-auth';
-import React, { useEffect } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 
 const navItems = [
   { href: '/events', icon: Calendar, label: 'Events' },
@@ -38,28 +37,9 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading, signOut } = useAuth();
-  const router = useRouter();
-
   // For now, we'll assume any logged-in user can be an admin for demo purposes.
   // A real app would have role management in the database.
-  const userRole = user ? 'admin' : 'user';
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen bg-background items-center justify-center">
-         <div className="flex flex-col items-center gap-4">
-            <p className="text-muted-foreground">Loading your experience...</p>
-         </div>
-      </div>
-    )
-  }
+  const userRole = 'admin'; // Assume admin for now to see all nav items
 
   return (
     <SidebarProvider>
@@ -94,14 +74,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
-            <SidebarMenu>
+            {/* <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
+                <SidebarMenuButton onClick={() => {}} tooltip={{children: "Logout", side: "right", align: "center"}}>
                   <LogOut />
                   <span>Logout</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
+            </SidebarMenu> */}
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>

@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useTransition } from 'react';
 import { Button } from './ui/button';
 import { toggleRsvp } from '@/app/actions/events';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
 
 interface RsvpButtonProps {
     eventId: string;
@@ -12,13 +12,12 @@ interface RsvpButtonProps {
 }
 
 export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
-    const { user } = useAuth();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     
-    if (!user) return null;
-
-    const isRsvpd = rsvps?.includes(user.uid);
+    // Auth is disabled
+    const mockUserId = 'guest-user';
+    const isRsvpd = rsvps?.includes(mockUserId);
 
     const handleRsvp = () => {
         startTransition(async () => {
@@ -26,7 +25,7 @@ export function RsvpButton({ eventId, rsvps }: RsvpButtonProps) {
                 await toggleRsvp(eventId);
                 toast({
                     title: 'Success',
-                    description: isRsvpd ? "You have successfully un-RSVP'd." : 'You have successfully RSVP\'d!',
+                    description: isRsvpd ? "You have successfully un-RSVP'd (simulation)." : 'You have successfully RSVP\'d! (simulation)',
                 });
             } catch (error) {
                 toast({
