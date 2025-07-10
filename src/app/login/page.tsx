@@ -13,9 +13,11 @@ import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 export default function LoginPage() {
-  const { user, signInWithGoogle, loading } = useAuth();
+  const { user, signInWithGoogle, loading, isFirebaseReady } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -48,11 +50,25 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full" onClick={signInWithGoogle}>
-              Sign in with Google
-            </Button>
-          </div>
+          {!isFirebaseReady ? (
+             <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Firebase Not Configured</AlertTitle>
+                <AlertDescription>
+                 Authentication is currently disabled. Please add your Firebase credentials to the 
+                  <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold">
+                     .env.local
+                  </code>
+                   file to enable sign-in.
+                </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <Button variant="outline" className="w-full" onClick={signInWithGoogle}>
+                Sign in with Google
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
