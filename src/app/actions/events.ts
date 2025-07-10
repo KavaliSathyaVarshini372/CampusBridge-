@@ -42,12 +42,21 @@ const MOCK_EVENTS = [
 ];
 
 export async function getEvents() {
-    if (!firestoreDb) return MOCK_EVENTS;
+    if (!firestoreDb) {
+        console.log("Firestore not configured. Returning mock events.");
+        return MOCK_EVENTS;
+    }
 
     try {
         const eventsRef = collection(firestoreDb, 'events');
         const q = query(eventsRef, orderBy('date', 'asc'));
         const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            console.log("No events in Firestore. Returning mock events.");
+            return MOCK_EVENTS;
+        }
+        
         const events = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -56,20 +65,15 @@ export async function getEvents() {
                 date: data.date,
             };
         });
-        
-        // If there are no events in Firestore, return mock data.
-        if (events.length === 0) {
-            return MOCK_EVENTS;
-        }
 
         return events;
     } catch (error: any) {
-        console.error('Error fetching events:', error);
-        // If there's a permission error, return mock data as a fallback.
-        if (error.code === 'permission-denied') {
-            console.log("Firestore permission denied. Returning mock data.");
+        console.error('Error fetching events:', error.message);
+        if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
+            console.log("Firestore permission denied. Returning mock data as a fallback.");
             return MOCK_EVENTS;
         }
+        // For other errors, you might want to return an empty array or handle differently
         return [];
     }
 }
