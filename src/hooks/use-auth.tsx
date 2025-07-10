@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { isFirebaseEnabled, firebaseAuth } from '@/lib/firebase';
+import { User, onAuthStateChanged, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, Auth } from 'firebase/auth';
+import { isFirebaseEnabled, firebaseAuth as authInstance, initializeFirebase } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -21,20 +21,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseAuth, setFirebaseAuth] = useState<Auth | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!firebaseAuth) {
-      setLoading(false);
-      return;
-    }
+    if (isFirebaseEnabled) {
+      const auth = initializeFirebase();
+      setFirebaseAuth(auth);
 
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      setUser(user);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
       setLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
   const signInWithEmail = async (email: string, pass: string) => {

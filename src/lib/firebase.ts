@@ -12,21 +12,39 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This check is for the developer to see if they have configured Firebase
-export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
+export const isFirebaseEnabled = !!(firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE");
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
 if (isFirebaseEnabled) {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
   auth = getAuth(app);
   db = getFirestore(app);
 } else {
-    console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
+  console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
 }
 
-export const firebaseApp = app;
-export const firebaseAuth = auth;
-export const firestoreDb = db;
+export function initializeFirebase() {
+  if (!isFirebaseEnabled) {
+    throw new Error("Firebase is not enabled. Please check your .env.local file.");
+  }
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  return getAuth(app);
+}
+
+// @ts-ignore
+export const firebaseApp: FirebaseApp = app;
+// @ts-ignore
+export const firebaseAuth: Auth = auth;
+// @ts-ignore
+export const firestoreDb: Firestore = db;
