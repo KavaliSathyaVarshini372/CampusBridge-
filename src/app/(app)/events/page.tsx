@@ -1,59 +1,13 @@
+
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { getEvents } from '@/app/actions/events';
 import { RsvpButton } from '@/components/rsvp-button';
 
-async function seedEvents() {
-    const { db } = await import('@/lib/firebase');
-    if (!db) return;
-    const { collection, getDocs, addDoc } = await import('firebase/firestore');
-
-    const eventsCollection = collection(db, 'events');
-    const snapshot = await getDocs(eventsCollection);
-    if (snapshot.empty) {
-        console.log("Seeding events...");
-        const eventsToSeed = [
-            {
-                title: 'Annual Tech Summit 2024',
-                description: 'Join us for a day of tech talks, workshops, and networking with industry leaders.',
-                date: '2024-10-26',
-                time: '9:00 AM - 5:00 PM',
-                location: 'Grand Auditorium',
-                image: 'https://placehold.co/600x400.png',
-                aiHint: 'conference technology',
-                rsvps: [],
-            },
-            {
-                title: 'Startup Pitch Night',
-                description: 'Watch the brightest student entrepreneurs pitch their ideas to a panel of venture capitalists.',
-                date: '2024-11-12',
-                time: '6:00 PM - 9:00 PM',
-                location: 'Innovation Hub',
-                image: 'https://placehold.co/600x400.png',
-                aiHint: 'startup pitch',
-                rsvps: [],
-            },
-            {
-                title: 'Art & Music Festival',
-                description: 'Experience a vibrant celebration of creativity with live music, art installations, and food stalls.',
-                date: '2024-11-22',
-                time: '2:00 PM - 11:00 PM',
-                location: 'University Lawn',
-                image: 'https://placehold.co/600x400.png',
-                aiHint: 'music festival',
-                rsvps: [],
-            },
-        ];
-        for (const event of eventsToSeed) {
-            await addDoc(eventsCollection, event);
-        }
-    }
-}
+export const revalidate = 0; // Revalidate this page on every request
 
 export default async function EventsPage() {
-    await seedEvents(); 
     const events = await getEvents() as any[];
 
   return (

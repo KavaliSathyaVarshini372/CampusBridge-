@@ -1,3 +1,4 @@
+
 'use client'
 import {
   DropdownMenu,
@@ -7,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NewCollaborationPostDialog } from '@/components/new-collaboration-post-dialog';
@@ -18,14 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getCollaborationPosts } from '@/app/actions/collaborate';
+import { getCollaborationPosts, toggleInterest } from '@/app/actions/collaborate';
 import { useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 type Post = {
     id: string;
+    authorId: string;
     authorName: string;
     authorAvatar: string;
     title: string;
@@ -33,6 +37,7 @@ type Post = {
     tags: string[];
     category: string;
     timestamp: string;
+    interestedUsers: string[];
 }
 
 const categoryDisplay: { [key: string]: string } = {
@@ -68,16 +73,55 @@ function PostSkeleton() {
                     <Skeleton className="h-4 w-5/6" />
                 </div>
             </CardContent>
-            <CardFooter className="bg-secondary/30">
-                <Skeleton className="h-10 w-full" />
+            <CardFooter className="bg-secondary/30 flex justify-between items-center p-4">
+                <Skeleton className="h-10 w-32" />
+                 <Skeleton className="h-6 w-16" />
             </CardFooter>
         </Card>
+    )
+}
+
+function ExpressInterestButton({ post, onInterestToggle }: { post: Post, onInterestToggle: (postId: string, isInterested: boolean) => void }) {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
+
+    if (!user) return null;
+
+    const isInterested = post.interestedUsers.includes(user.uid);
+    const isAuthor = post.authorId === user.uid;
+
+    if (isAuthor) {
+        return (
+            <Button disabled className="w-full">
+                You are the author
+            </Button>
+        );
+    }
+    
+    const handleClick = () => {
+        startTransition(async () => {
+            const result = await toggleInterest(post.id);
+            if (result.success) {
+                toast({ title: 'Success', description: isInterested ? 'Interest removed.' : 'You have expressed interest!' });
+                onInterestToggle(post.id, !isInterested);
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        });
+    };
+
+    return (
+        <Button onClick={handleClick} disabled={isPending} variant={isInterested ? "secondary" : "default"} className="w-full">
+            {isPending ? "Updating..." : isInterested ? "Remove Interest" : "Express Interest"}
+        </Button>
     )
 }
 
 export default function CollaboratePage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user } = useAuth();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isPending, startTransition] = useTransition();
 
@@ -98,6 +142,21 @@ export default function CollaboratePage() {
             params.set('category', value);
         }
         router.push(`/collaborate?${params.toString()}`);
+    };
+
+    const handleInterestToggle = (postId: string, isInterested: boolean) => {
+        if (!user) return;
+        setPosts(prevPosts =>
+            prevPosts.map(p => {
+                if (p.id === postId) {
+                    const interestedUsers = isInterested
+                        ? [...p.interestedUsers, user.uid]
+                        : p.interestedUsers.filter(id => id !== user.uid);
+                    return { ...p, interestedUsers };
+                }
+                return p;
+            })
+        );
     };
 
     return (
@@ -169,8 +228,12 @@ export default function CollaboratePage() {
                         </div>
                         <CardDescription>{post.description}</CardDescription>
                         </CardContent>
-                        <CardFooter className="bg-secondary/30">
-                        <Button className="w-full">Express Interest</Button>
+                        <CardFooter className="bg-secondary/30 flex justify-between items-center p-4">
+                             <ExpressInterestButton post={post} onInterestToggle={handleInterestToggle} />
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>{post.interestedUsers.length}</span>
+                             </div>
                         </CardFooter>
                     </Card>
                 ))

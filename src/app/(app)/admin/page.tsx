@@ -1,3 +1,6 @@
+
+'use client';
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,31 +26,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-import { getReports } from "@/app/actions/admin"
+import { getReports, updateReportStatus } from "@/app/actions/admin"
+import { useEffect, useState, useTransition } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
-async function seedReports() {
-    const { db } = await import('@/lib/firebase');
-    if (!db) return;
-    const { collection, getDocs, addDoc } = await import('firebase/firestore');
-    
-    const reportsCollection = collection(db, 'reports');
-    const snapshot = await getDocs(reportsCollection);
-    if (snapshot.empty) {
-        console.log("Seeding reports...");
-        const reportsToSeed = [
-            { itemType: 'Collaboration Post', reportedBy: 'user123@example.com', reason: 'Spam', date: '2024-05-20', status: 'Pending' },
-            { itemType: 'User Profile', reportedBy: 'user456@example.com', reason: 'Inappropriate Content', date: '2024-05-19', status: 'Pending' },
-            { itemType: 'Event Comment', reportedBy: 'user789@example.com', reason: 'Harassment', date: '2024-05-18', status: 'Resolved' },
-        ];
-        for (const report of reportsToSeed) {
-            await addDoc(reportsCollection, report);
-        }
-    }
+type Report = {
+    id: string;
+    itemType: string;
+    reportedBy: string;
+    reason: string;
+    date: string;
+    status: string;
 }
 
-export default async function AdminPage() {
-    await seedReports();
-    const reports = await getReports() as any[];
+export default function AdminPage() {
+    const [reports, setReports] = useState<Report[]>([]);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
+    useEffect(() => {
+        startTransition(async () => {
+            const fetchedReports = await getReports() as Report[];
+            setReports(fetchedReports);
+        });
+    }, []);
+
+    const handleUpdateStatus = async (reportId: string, status: 'Resolved' | 'Dismissed') => {
+        const result = await updateReportStatus(reportId, status);
+        if (result.success) {
+            toast({ title: "Success", description: `Report status updated to ${status}.` });
+            setReports(prevReports => prevReports.map(r => r.id === reportId ? { ...r, status } : r));
+        } else {
+            toast({ title: "Error", description: result.message, variant: 'destructive' });
+        }
+    };
 
   return (
     <div>
@@ -77,20 +90,29 @@ export default async function AdminPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.length === 0 && (
+              {isPending ? (
+                <TableRow>
+                    <TableCell colSpan={6}>
+                        <div className="space-y-2">
+                           <Skeleton className="h-8 w-full" />
+                           <Skeleton className="h-8 w-full" />
+                           <Skeleton className="h-8 w-full" />
+                        </div>
+                    </TableCell>
+                </TableRow>
+              ) : reports.length === 0 ? (
                 <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                         No reports found.
                     </TableCell>
                 </TableRow>
-              )}
-              {reports.map((report) => (
+              ) : reports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.itemType}</TableCell>
                   <TableCell className="hidden sm:table-cell">{report.reportedBy}</TableCell>
                   <TableCell>{report.reason}</TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <Badge variant={report.status === 'Pending' ? 'destructive' : 'secondary'}>
+                    <Badge variant={report.status === 'Pending' ? 'destructive' : report.status === 'Resolved' ? 'default' : 'secondary'}>
                       {report.status}
                     </Badge>
                   </TableCell>
@@ -105,10 +127,10 @@ export default async function AdminPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Item</DropdownMenuItem>
-                        <DropdownMenuItem>Dismiss Report</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleUpdateStatus(report.id, 'Resolved')}>Mark as Resolved</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleUpdateStatus(report.id, 'Dismissed')}>Dismiss Report</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                          Ban User
+                          Ban User (Not implemented)
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
