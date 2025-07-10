@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseAuth, isFirebaseEnabled } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -19,28 +19,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const isFirebaseReady = !!auth;
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isFirebaseReady) {
+    if (!isFirebaseEnabled) {
       setLoading(false);
       return;
     }
-    // This assertion is safe because of the isFirebaseReady check above.
-    const unsubscribe = onAuthStateChanged(auth!, (user) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [isFirebaseReady]);
+  }, []);
 
   const signInWithGoogle = async () => {
+    const auth = getFirebaseAuth();
     if (!auth) {
         toast({
             title: "Feature Unavailable",
-            description: "Firebase is not configured. Please add credentials to the .env file.",
+            description: "Firebase is not configured. Please add credentials to the .env.local file.",
             variant: "destructive"
         });
         return;
@@ -60,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    const auth = getFirebaseAuth();
     if (!auth) {
       toast({
         title: "Feature Unavailable",
@@ -82,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, isFirebaseReady }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, isFirebaseReady: isFirebaseEnabled }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,12 +3,12 @@
 
 import { z } from 'zod';
 import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb, getFirebaseAuth } from '@/lib/firebase';
 import { CollaborationPostSchema } from '@/lib/schemas';
-import { auth } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
 export async function getCollaborationPosts(category?: string) {
+    const db = getFirebaseDb();
     if (!db) {
         console.log("Db not available");
         return [];
@@ -43,6 +43,9 @@ export async function getCollaborationPosts(category?: string) {
 
 
 export async function createCollaborationPost(values: z.infer<typeof CollaborationPostSchema>) {
+    const db = getFirebaseDb();
+    const auth = getFirebaseAuth();
+
     if (!db || !auth?.currentUser) {
         return { success: false, message: 'Authentication or Database not configured.' };
     }
@@ -74,6 +77,9 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
 }
 
 export async function toggleInterest(postId: string) {
+    const db = getFirebaseDb();
+    const auth = getFirebaseAuth();
+
     if (!db || !auth?.currentUser) {
         return { success: false, message: 'You must be logged in to express interest.' };
     }
@@ -108,6 +114,9 @@ export async function toggleInterest(postId: string) {
 }
 
 export async function reportPost(postId: string, reason: string) {
+    const db = getFirebaseDb();
+    const auth = getFirebaseAuth();
+
     if (!db || !auth?.currentUser) {
         return { success: false, message: 'You must be logged in to report a post.' };
     }

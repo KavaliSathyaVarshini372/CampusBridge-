@@ -11,23 +11,22 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-
-if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
-    try {
-        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-    } catch (e) {
-        console.error("Failed to initialize Firebase. Please check your .env.local file and Firebase project configuration.", e);
-        app = null;
-        auth = null;
-        db = null;
+function getFirebaseApp(): FirebaseApp | null {
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
+        return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     }
-} else {
     console.warn("Firebase configuration is missing or uses placeholder values in .env.local. Firebase features will be disabled.");
+    return null;
 }
 
-export { app, auth, db };
+export function getFirebaseAuth(): Auth | null {
+    const app = getFirebaseApp();
+    return app ? getAuth(app) : null;
+}
+
+export function getFirebaseDb(): Firestore | null {
+    const app = getFirebaseApp();
+    return app ? getFirestore(app) : null;
+}
+
+export const isFirebaseEnabled = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE';

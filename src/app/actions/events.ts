@@ -1,10 +1,11 @@
 'use server';
 
 import { arrayRemove, arrayUnion, collection, doc, getDocs, orderBy, query, updateDoc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { getFirebaseDb, getFirebaseAuth } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
 export async function getEvents() {
+    const db = getFirebaseDb();
     if (!db) return [];
 
     try {
@@ -27,6 +28,8 @@ export async function getEvents() {
 }
 
 export async function toggleRsvp(eventId: string) {
+    const db = getFirebaseDb();
+    const auth = getFirebaseAuth();
     if (!db || !auth?.currentUser) {
         throw new Error('User is not authenticated or DB is not available.');
     }

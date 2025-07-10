@@ -2,10 +2,11 @@
 'use server';
 
 import { collection, getDocs, orderBy, query, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { revalidatePath } from 'next/cache';
 
 export async function getReports() {
+    const db = getFirebaseDb();
     if (!db) return [];
 
     try {
@@ -28,6 +29,7 @@ export async function getReports() {
 }
 
 export async function updateReportStatus(reportId: string, status: 'Resolved' | 'Dismissed') {
+    const db = getFirebaseDb();
     if (!db) {
         return { success: false, message: 'Database not configured.' };
     }

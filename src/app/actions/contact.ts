@@ -2,10 +2,11 @@
 
 import { z } from 'zod';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { ContactFormSchema } from '@/lib/schemas';
 
 export async function saveContactInquiry(values: z.infer<typeof ContactFormSchema>) {
+  const db = getFirebaseDb();
   if (!db) {
     return { success: false, message: 'Database not configured.' };
   }
