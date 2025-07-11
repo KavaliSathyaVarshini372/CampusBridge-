@@ -47,7 +47,7 @@ function LoginToContinueButton({ children }: { children: React.ReactNode }) {
     if (loading) return <Button disabled className="w-full">Loading...</Button>;
     if (!user) return <Button onClick={() => router.push('/login')} className="w-full">{children}</Button>;
     
-    return <Button className="w-full">{children}</Button>;
+    return <Button asChild className="w-full"><Link href="/events">{children}</Link></Button>;
 }
 
 export default function Home() {
@@ -93,27 +93,46 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-40 bg-secondary/30 relative overflow-hidden">
-          <div className="container mx-auto text-center px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tighter">Connect, Collaborate, Create.</h1>
-              <p className="max-w-[600px] mx-auto mt-4 text-muted-foreground md:text-xl">
-                CampusBridge+ is your central hub for university life. Discover events, find project partners, and build your community.
-              </p>
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/login">
-                  Get Started <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
-            </motion.div>
-          </div>
-          <FloatingIcon icon={<Calendar className="w-6 h-6 text-primary" />} className="top-[15%] left-[10%] hidden lg:block" delay={0} />
-          <FloatingIcon icon={<Users className="w-6 h-6 text-accent" />} className="top-[20%] right-[15%] hidden lg:block" delay={0.5} />
-          <FloatingIcon icon={<Newspaper className="w-6 h-6 text-primary" />} className="bottom-[25%] left-[20%] hidden lg:block" delay={1} />
-          <FloatingIcon icon={<Mountain className="w-6 h-6 text-accent" />} className="bottom-[20%] right-[25%] hidden lg:block" delay={1.5} />
+            {/* Background Graphical Elements */}
+            <div className="absolute inset-0 z-0">
+                <motion.div 
+                    className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/10 rounded-full"
+                    animate={{ y: [-10, 10, -10], x: [-10, 10, -10] }}
+                    transition={{ duration: 8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+                />
+                <motion.div 
+                    className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-accent/10 rounded-xl"
+                    animate={{ y: [15, -15, 15], rotate: [0, 90, 0] }}
+                    transition={{ duration: 12, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+                />
+                 <motion.div 
+                    className="absolute bottom-1/2 right-1/3 w-24 h-24 border-4 border-primary/20"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                />
+            </div>
+
+            <div className="container mx-auto text-center px-4 relative z-10">
+                <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                >
+                <h1 className="text-4xl md:text-6xl font-bold tracking-tighter">Connect, Collaborate, Create.</h1>
+                <p className="max-w-[600px] mx-auto mt-4 text-muted-foreground md:text-xl">
+                    CampusBridge+ is your central hub for university life. Discover events, find project partners, and build your community.
+                </p>
+                <Button asChild size="lg" className="mt-8">
+                    <Link href="/login">
+                    Get Started <ArrowRight className="ml-2" />
+                    </Link>
+                </Button>
+                </motion.div>
+            </div>
+            <FloatingIcon icon={<Calendar className="w-6 h-6 text-primary" />} className="top-[15%] left-[10%] hidden lg:block" delay={0} />
+            <FloatingIcon icon={<Users className="w-6 h-6 text-accent" />} className="top-[20%] right-[15%] hidden lg:block" delay={0.5} />
+            <FloatingIcon icon={<Newspaper className="w-6 h-6 text-primary" />} className="bottom-[25%] left-[20%] hidden lg:block" delay={1} />
+            <FloatingIcon icon={<Mountain className="w-6 h-6 text-accent" />} className="bottom-[20%] right-[25%] hidden lg:block" delay={1.5} />
         </section>
 
         {/* Events Section */}
