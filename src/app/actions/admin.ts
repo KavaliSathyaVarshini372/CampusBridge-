@@ -2,21 +2,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getFirebase } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
-const getDb = () => {
-    const { db } = getFirebase();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-    return db;
-}
-
 export async function getReports() {
+    if (!db) {
+        console.warn("Firestore is not available. Serving empty array.");
+        return [];
+    }
     try {
-        const db = getDb();
         const reportsCollection = collection(db, 'reports');
         const q = query(reportsCollection, orderBy('date', 'desc'));
         const reportSnapshot = await getDocs(q);
@@ -44,8 +39,11 @@ export async function addReport(itemId: string, itemType: string, reason: string
     if (!user) {
         return { success: false, message: 'You must be logged in to report a post.' };
     }
+    
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
 
-    const db = getDb();
     const postDocRef = doc(db, 'collaborations', itemId);
     const postDoc = await getDoc(postDocRef);
 
@@ -71,8 +69,11 @@ export async function updateReportStatus(reportId: string, status: 'Resolved' | 
     if (user?.email !== 'admin@example.com') {
          return { success: false, message: 'You do not have permission to perform this action.' };
     }
+    
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
 
-    const db = getDb();
     const reportDoc = doc(db, 'reports', reportId);
     await updateDoc(reportDoc, { status });
     revalidatePath('/admin');

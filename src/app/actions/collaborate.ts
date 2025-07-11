@@ -5,26 +5,19 @@ import { z } from 'zod';
 import { CollaborationPostSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
 import { addReport } from './admin';
-import { getFirebase } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, arrayUnion, arrayRemove, query, where, serverTimestamp, orderBy, getDoc } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
-const getDb = () => {
-    const { db } = getFirebase();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-    return db;
-}
-
-const getPostsCollection = () => {
-    const db = getDb();
-    return collection(db, 'collaborations');
-}
-
 export async function getCollaborationPosts(category?: string) {
+    if (!db) {
+        console.warn("Firestore is not available. Serving mock data.");
+        return [
+            { id: '1', authorId: 'mock1', authorName: 'Dr. Evelyn Reed', authorAvatar: `https://placehold.co/40x40.png`, title: 'AI in Healthcare Study Group', description: 'Seeking motivated students to explore the latest advancements in medical AI. We will review papers, discuss ethics, and work on a small-scale project.', tags: ['AI', 'Healthcare'], category: 'study-group', timestamp: new Date(Date.now() - 86400000).toISOString(), interestedUsers: ['a','b','c'] },
+        ];
+    }
     try {
-        const postsCollection = getPostsCollection();
+        const postsCollection = collection(db, 'collaborations');
         let q;
         if (category && category !== 'all') {
             q = query(postsCollection, where('category', '==', category), orderBy('timestamp', 'desc'));
@@ -69,8 +62,12 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     if (user?.email !== 'admin@example.com') {
         return { success: false, message: 'You do not have permission to create a post.' };
     }
+    
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
 
-    const postsCollection = getPostsCollection();
+    const postsCollection = collection(db, 'collaborations');
     const newPost = {
         authorId: user.uid,
         authorName: user.displayName || user.email,
@@ -93,8 +90,11 @@ export async function toggleInterest(postId: string) {
     if (!user) {
         return { success: false, message: 'You must be logged in to express interest.' };
     }
+    
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
 
-    const db = getDb();
     const postDocRef = doc(db, 'collaborations', postId);
     const postDoc = await getDoc(postDocRef);
     if (!postDoc.exists()) {
@@ -112,7 +112,9 @@ export async function toggleInterest(postId: string) {
 }
 
 export async function reportPost(postId: string, reason: string) {
-    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
     const post = await getDoc(doc(db, 'collaborations', postId));
     if (!post.exists()) {
         return { success: false, message: 'Post not found.' };

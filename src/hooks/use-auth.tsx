@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useContext, createContext, useCallback } from 'react';
 import { User, onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup, type Auth } from 'firebase/auth';
-import { getFirebase } from '@/lib/firebase';
+import { auth as firebaseAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
@@ -19,21 +19,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [firebaseAuth, setFirebaseAuth] = useState<Auth | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   
   useEffect(() => {
-    const { auth } = getFirebase();
-    setFirebaseAuth(auth);
-
-    if (!auth) {
+    if (!firebaseAuth) {
         console.warn("Firebase Auth is not available. Running in offline mode.");
         setLoading(false);
         return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
         setUser(user);
         setLoading(false);
     });
@@ -54,12 +50,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       let message = "An unknown error occurred during sign-in.";
       if (error.code === 'auth/popup-closed-by-user') {
         message = "Sign-in popup closed before completion.";
-      } else if (error.code === 'auth/configuration-not-found') {
-        message = "Firebase authentication is not configured correctly. Please check your credentials.";
+      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-blocked') {
+        message = "The sign-in popup was blocked by the browser. Please allow popups for this site.";
       }
       toast({ title: "Error", description: message, variant: "destructive" });
     }
-  }, [firebaseAuth, toast]);
+  }, [toast]);
 
   const signOut = useCallback(async () => {
     if (!firebaseAuth) {
@@ -72,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
-  }, [firebaseAuth, router, toast]);
+  }, [router, toast]);
 
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>

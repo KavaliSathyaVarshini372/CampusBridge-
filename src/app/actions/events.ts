@@ -2,26 +2,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getFirebase } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, orderBy } from 'firebase/firestore';
 import { getAuthenticatedUser } from '@/lib/auth';
 
-const getDb = () => {
-    const { db } = getFirebase();
-    if (!db) {
-        throw new Error("Firestore is not initialized.");
-    }
-    return db;
-}
-
-const getEventsCollection = () => {
-    const db = getDb();
-    return collection(db, 'events');
-}
-
 export async function getEvents() {
+    if (!db) {
+        console.warn("Firestore is not available. Serving mock data.");
+        return [
+            { id: '1', title: 'Tech Summit 2024', date: new Date(Date.now() + 86400000 * 7).toISOString(), time: '9:00 AM - 5:00 PM', location: 'Grand Hall', description: 'A full day of talks and workshops from industry leaders in AI, cloud computing, and more.', image: 'https://placehold.co/600x400.png', aiHint: 'technology conference', rsvps: [] },
+        ];
+    }
     try {
-        const eventsCollection = getEventsCollection();
+        const eventsCollection = collection(db, 'events');
         const q = query(eventsCollection, orderBy('date', 'asc'));
         const eventSnapshot = await getDocs(q);
         const events = eventSnapshot.docs.map(doc => {
@@ -56,8 +49,11 @@ export async function toggleRsvp(eventId: string) {
     if (!user) {
         return { success: false, message: "You must be logged in to RSVP" };
     }
+    
+    if (!db) {
+        return { success: false, message: 'Database service is not available.' };
+    }
 
-    const db = getDb();
     const eventDocRef = doc(db, 'events', eventId);
     const eventDoc = await getDoc(eventDocRef);
 
