@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +24,8 @@ function SignInForm() {
     startTransition(async () => {
       const result = await signInWithEmail(formData);
       if (result.success) {
-        // This will be handled by the useAuth effect
+        toast({ title: "Sign In Successful", description: "Welcome back!" });
+        // The useAuth hook will handle the redirect
       } else {
         toast({
           title: "Sign In Failed",
@@ -56,7 +57,6 @@ function SignUpForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [activeTab, setActiveTab] = useState('signup');
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -66,7 +66,6 @@ function SignUpForm() {
           title: "Sign Up Successful",
           description: "Please sign in with your new account.",
         });
-        // Note: The parent component will switch tabs or handle redirect
       } else {
         toast({
           title: "Sign Up Failed",
@@ -100,11 +99,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (user.email === 'admin@example.com') {
-        router.push('/events'); // Admin dashboard
-      } else {
-        router.push('/'); // Regular user landing page
-      }
+        // Redirection is now handled in the useAuth hook.
+        // This avoids layout flashes.
     }
   }, [user, loading, router]);
 
@@ -112,15 +108,16 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-            <Logo />
-            <Skeleton className="h-4 w-24" />
+            <Logo isLoginPage={true} />
+            <p className="text-muted-foreground">Loading your experience...</p>
+            <Skeleton className="h-4 w-48 mt-2" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-secondary">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4">
       <div className="mb-8">
         <Logo isLoginPage={true}/>
       </div>
@@ -135,10 +132,10 @@ export default function LoginPage() {
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            <TabsContent value="signin">
+            <TabsContent value="signin" className="pt-4">
               <SignInForm />
             </TabsContent>
-            <TabsContent value="signup">
+            <TabsContent value="signup" className="pt-4">
               <SignUpForm />
             </TabsContent>
           </Tabs>

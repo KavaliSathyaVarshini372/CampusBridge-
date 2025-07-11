@@ -43,6 +43,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   
+  // This layout is for the admin dashboard.
+  // We show a loading state first.
   if (loading) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
@@ -54,16 +56,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // This layout is now admin-only. Redirect non-admins or guests.
-  if (user?.email !== 'admin@example.com') {
+  // Then, if the user is not the admin, redirect them away.
+  if (!user || user.email !== 'admin@example.com') {
       router.push('/');
       return (
         <div className="flex min-h-screen bg-background items-center justify-center">
-            <p>Redirecting...</p>
+            <p>Access Denied. Redirecting...</p>
         </div>
       );
   }
 
+  // If the user is the admin, render the dashboard.
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-background">
@@ -74,22 +77,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={{
-                        children: item.label,
-                        side: 'right',
-                        align: 'center',
-                      }}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  (!item.admin || user.email === 'admin@example.com') && (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(item.href)}
+                        tooltip={{
+                          children: item.label,
+                          side: 'right',
+                          align: 'center',
+                        }}
+                      >
+                        <Link href={item.href}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
               ))}
             </SidebarMenu>
           </SidebarContent>

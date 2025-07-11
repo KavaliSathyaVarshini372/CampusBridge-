@@ -32,10 +32,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(user);
         setLoading(false);
         if (user) {
+          // Redirect based on role
           if (user.email === 'admin@example.com') {
-            router.push('/events');
+            // Check if we are not already in an admin path to avoid redirect loops
+            if (!window.location.pathname.startsWith('/events')) {
+               router.push('/events');
+            }
           } else {
-            router.push('/');
+            // For regular users, redirect to home if they are on a non-home page
+            if (window.location.pathname !== '/') {
+               router.push('/');
+            }
           }
         }
     });
@@ -50,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await firebaseSignOut(auth);
       router.push('/');
+      toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
