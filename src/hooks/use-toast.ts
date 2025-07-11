@@ -8,7 +8,6 @@ import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
-import {AnimatePresence, motion} from 'framer-motion';
 
 const TOAST_LIMIT = 3
 const TOAST_REMOVE_DELAY = 5000;
@@ -17,8 +16,7 @@ type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
-  action?: ToastActionElement,
-  FramerComponent?: React.ElementType
+  action?: ToastActionElement
 }
 
 const actionTypes = {
@@ -191,11 +189,6 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-    FramerComponent: ({children}: {children: React.ReactNode}) => (
-        <AnimatePresence>
-            {children}
-        </AnimatePresence>
-    )
   }
 }
 
