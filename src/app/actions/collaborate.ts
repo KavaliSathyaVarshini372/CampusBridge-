@@ -11,10 +11,8 @@ import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function getCollaborationPosts(category?: string) {
     if (!db) {
-        console.warn("Firestore is not available. Serving mock data.");
-        return [
-            { id: '1', authorId: 'mock1', authorName: 'Dr. Evelyn Reed', authorAvatar: `https://placehold.co/40x40.png`, title: 'AI in Healthcare Study Group', description: 'Seeking motivated students to explore the latest advancements in medical AI. We will review papers, discuss ethics, and work on a small-scale project.', tags: ['AI', 'Healthcare'], category: 'study-group', timestamp: new Date(Date.now() - 86400000).toISOString(), interestedUsers: ['a','b','c'] },
-        ];
+        console.warn("Firestore is not available. Serving empty array.");
+        return [];
     }
     try {
         const postsCollection = collection(db, 'collaborations');
@@ -43,12 +41,8 @@ export async function getCollaborationPosts(category?: string) {
         });
         return posts;
     } catch(error) {
-        console.warn("Could not connect to Firestore. Serving mock data. Error:", error);
-        return [
-            { id: '1', authorId: 'mock1', authorName: 'Dr. Evelyn Reed', authorAvatar: `https://placehold.co/40x40.png`, title: 'AI in Healthcare Study Group', description: 'Seeking motivated students to explore the latest advancements in medical AI. We will review papers, discuss ethics, and work on a small-scale project.', tags: ['AI', 'Healthcare'], category: 'study-group', timestamp: new Date(Date.now() - 86400000).toISOString(), interestedUsers: ['a','b','c'] },
-            { id: '2', authorId: 'mock2', authorName: 'Campus Green Initiative', authorAvatar: `https://placehold.co/40x40.png`, title: 'Recycling Program Volunteers', description: 'Join us in making our campus more sustainable! We need volunteers to help with our weekly recycling drives and awareness campaigns.', tags: ['Environment', 'Volunteer'], category: 'club', timestamp: new Date(Date.now() - 172800000).toISOString(), interestedUsers: ['d'] },
-            { id: '3', authorId: 'mock3', authorName: 'CS Department', authorAvatar: `https://placehold.co/40x40.png`, title: 'Hackathon Planning Committee', description: 'Looking for creative minds to help organize the annual Fall Hackathon. Roles available in logistics, marketing, and sponsorship outreach.', tags: ['Events', 'Tech'], category: 'project', timestamp: new Date(Date.now() - 259200000).toISOString(), interestedUsers: [] },
-        ];
+        console.warn("Could not connect to Firestore to get collaborations. Serving empty array. Error:", error);
+        return [];
     }
 }
 
@@ -70,7 +64,7 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     const postsCollection = collection(db, 'collaborations');
     const newPost = {
         authorId: user.uid,
-        authorName: user.displayName || user.email,
+        authorName: user.email,
         authorAvatar: user.photoURL || `https://placehold.co/40x40.png`,
         title: validatedFields.data.title,
         description: validatedFields.data.description,
