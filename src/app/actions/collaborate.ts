@@ -73,8 +73,8 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     const postsCollection = getPostsCollection();
     const newPost = {
         authorId: user.uid,
-        authorName: user.email,
-        authorAvatar: `https://placehold.co/40x40.png`,
+        authorName: user.displayName || user.email,
+        authorAvatar: user.photoURL || `https://placehold.co/40x40.png`,
         title: validatedFields.data.title,
         description: validatedFields.data.description,
         tags: [],

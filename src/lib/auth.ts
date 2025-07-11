@@ -13,13 +13,15 @@ export async function getAuthenticatedUser() {
     }
 
     try {
-        const user = JSON.parse(userPayload);
-        // A simple check for admin role
-        if (user.email === 'admin@example.com') {
-            user.role = 'admin';
-        } else {
-            user.role = 'user';
+        const decodedUser = JSON.parse(userPayload);
+        const user = {
+            uid: decodedUser.uid,
+            email: decodedUser.email,
+            displayName: decodedUser.displayName,
+            photoURL: decodedUser.photoURL,
+            emailVerified: decodedUser.emailVerified,
         }
+
         return user;
     } catch (error) {
         console.error("Failed to parse user payload:", error);
