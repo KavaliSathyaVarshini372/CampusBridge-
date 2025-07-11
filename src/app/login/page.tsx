@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 262" {...props}>
@@ -30,29 +31,21 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
   
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    await signInWithGoogle();
+    setIsSubmitting(false);
+  }
+
   if (loading || user) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center">
         <div className="flex flex-col items-center gap-4">
             <Logo />
-            <p className="text-muted-foreground">Loading...</p>
+            <Skeleton className="h-4 w-24" />
         </div>
       </div>
     );
-  }
-
-  const handleGoogleSignIn = async () => {
-    setIsSubmitting(true);
-    const result = await signInWithGoogle();
-    
-    if (result.success) {
-      toast({ title: "Success", description: "Signed in successfully!" });
-      // The onAuthStateChanged listener in useAuth will handle the redirect
-    } else if (result.message) {
-      toast({ title: "Error", description: result.message, variant: "destructive" });
-    }
-    
-    setIsSubmitting(false);
   }
 
   return (
@@ -60,10 +53,10 @@ export default function LoginPage() {
       <div className="mb-8">
         <Logo />
       </div>
-      <Card className="w-[400px]">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle>Welcome to CampusBridge+</CardTitle>
-          <CardDescription>Sign in with your Google account to continue.</CardDescription>
+          <CardTitle className="text-2xl">Welcome to CampusBridge+</CardTitle>
+          <CardDescription>Sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>
            <Button 
