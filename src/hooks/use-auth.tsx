@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext, createContext, useCallback } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirebase } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
@@ -10,6 +10,7 @@ import { useToast } from './use-toast';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  signInWithGoogle: () => Promise<{ success: boolean, message?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -35,6 +36,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, [firebaseAuth]);
 
+  const signInWithGoogle = useCallback(async () => {
+    if (!firebaseAuth) {
+      return { success: false, message: "Authentication is not configured." };
+    }
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(firebaseAuth, provider);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      let message = "An unknown error occurred during sign-in.";
+      if (error.code === 'auth/popup-closed-by-user') {
+        message = "Sign-in popup closed before completion.";
+      }
+      return { success: false, message };
+    }
+  }, [firebaseAuth]);
+
   const signOut = useCallback(async () => {
     if (!firebaseAuth) {
         toast({ title: "Error", description: "Authentication is not configured.", variant: "destructive" });
@@ -49,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [firebaseAuth, router, toast]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
