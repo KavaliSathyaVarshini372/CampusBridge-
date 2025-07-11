@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
 
 const AuthSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -70,7 +71,7 @@ function AuthForm({ mode, onSubmit, isSubmitting }: { mode: 'login' | 'signup', 
 }
 
 export default function LoginPage() {
-  const { user, loading, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -94,11 +95,16 @@ export default function LoginPage() {
 
   const handleAuth = (mode: 'login' | 'signup'): SubmitHandler<AuthFormValues> => async (data) => {
     setIsSubmitting(true);
-    if (mode === 'login') {
-      await signInWithEmail(data.email, data.password);
+    const authFunction = mode === 'login' ? signInWithEmail : signUpWithEmail;
+    const result = await authFunction(data.email, data.password);
+    
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+      // The onAuthStateChanged listener in useAuth will handle the redirect
     } else {
-      await signUpWithEmail(data.email, data.password);
+      toast({ title: "Error", description: result.message, variant: "destructive" });
     }
+    
     setIsSubmitting(false);
   }
 
