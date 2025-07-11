@@ -11,7 +11,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const isFirebaseEnabled = !!(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("AIzaSy"));
+export const isFirebaseEnabled = !!(
+  firebaseConfig.apiKey &&
+  !firebaseConfig.apiKey.startsWith("AIzaSy")
+);
 
 let app: FirebaseApp;
 let auth: Auth;
