@@ -11,8 +11,16 @@ import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function getCollaborationPosts(category?: string) {
     if (!db) {
-        console.warn("Firestore is not available. Serving empty array.");
-        return [];
+        console.warn("Firestore is not available. Serving mock data.");
+        const mockPosts = [
+            { id: '1', title: 'AI Study Group', description: 'Looking for students interested in studying deep learning and NLP. We will meet weekly to discuss papers and work on projects.', category: 'study-group', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+            { id: '2', title: 'Campus Navigation App', description: 'Seeking developers and designers to build an app to help new students navigate the campus. React Native experience is a plus!', category: 'project', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+            { id: '3', title: 'Chess Club Recruitment', description: 'The university chess club is looking for new members of all skill levels. Join us for casual games and tournaments.', category: 'club', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+        ];
+        if (category && category !== 'all') {
+            return mockPosts.filter(p => p.category === category);
+        }
+        return mockPosts;
     }
     try {
         const postsCollection = collection(db, 'collaborations');
@@ -41,8 +49,16 @@ export async function getCollaborationPosts(category?: string) {
         });
         return posts;
     } catch(error) {
-        console.warn("Could not connect to Firestore to get collaborations. Serving empty array. Error:", error);
-        return [];
+        console.warn("Could not connect to Firestore to get collaborations. Serving mock data. Error:", error);
+        const mockPosts = [
+            { id: '1', title: 'AI Study Group', description: 'Looking for students interested in studying deep learning and NLP. We will meet weekly to discuss papers and work on projects.', category: 'study-group', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+            { id: '2', title: 'Campus Navigation App', description: 'Seeking developers and designers to build an app to help new students navigate the campus. React Native experience is a plus!', category: 'project', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+            { id: '3', title: 'Chess Club Recruitment', description: 'The university chess club is looking for new members of all skill levels. Join us for casual games and tournaments.', category: 'club', interestedUsers: [], authorId: '', authorName: 'Admin', authorAvatar: '', timestamp: new Date().toISOString() },
+        ];
+        if (category && category !== 'all') {
+            return mockPosts.filter(p => p.category === category);
+        }
+        return mockPosts;
     }
 }
 
@@ -64,7 +80,7 @@ export async function createCollaborationPost(values: z.infer<typeof Collaborati
     const postsCollection = collection(db, 'collaborations');
     const newPost = {
         authorId: user.uid,
-        authorName: user.email,
+        authorName: user.displayName,
         authorAvatar: user.photoURL || `https://placehold.co/40x40.png`,
         title: validatedFields.data.title,
         description: validatedFields.data.description,
