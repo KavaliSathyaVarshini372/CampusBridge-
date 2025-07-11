@@ -1,7 +1,7 @@
 
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   SidebarProvider,
@@ -22,7 +22,7 @@ import {
   Newspaper,
   Shield,
   LogOut,
-  LogIn,
+  Home,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -41,6 +41,7 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
+  const router = useRouter();
   
   if (loading) {
     return (
@@ -52,9 +53,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
-  const isAdmin = user?.email === 'admin@example.com';
-  const isAuthenticated = !!user;
+
+  // This layout is now admin-only. Redirect non-admins or guests.
+  if (user?.email !== 'admin@example.com') {
+      router.push('/');
+      return (
+        <div className="flex min-h-screen bg-background items-center justify-center">
+            <p>Redirecting...</p>
+        </div>
+      );
+  }
 
   return (
     <SidebarProvider>
@@ -65,9 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              {navItems.map((item) => {
-                if (item.admin && !isAdmin) return null;
-                return (
+              {navItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
@@ -84,26 +90,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                );
-              })}
+              ))}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                {isAuthenticated ? (
+                <SidebarMenuButton asChild tooltip={{children: "Back to Home", side: "right", align: "center"}}>
+                    <Link href="/">
+                      <Home />
+                      <span>Home</span>
+                    </Link>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                   <SidebarMenuButton onClick={signOut} tooltip={{children: "Logout", side: "right", align: "center"}}>
                     <LogOut />
                     <span>Logout</span>
                   </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton asChild tooltip={{children: "Login / Sign Up", side: "right", align: "center"}}>
-                    <Link href="/login">
-                      <LogIn />
-                      <span>Login / Sign Up</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>

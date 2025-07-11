@@ -51,8 +51,11 @@ export async function signInWithEmail(formData: FormData) {
 
     try {
         const auth = getAuth(app);
-        await signInWithEmailAndPassword(auth, email, password);
-        return { success: true, message: 'Sign in successful!' };
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        const isAdmin = userCredential.user.email === 'admin@example.com';
+        
+        return { success: true, message: 'Sign in successful!', isAdmin };
     } catch (error: any) {
         return { success: false, message: error.message };
     }

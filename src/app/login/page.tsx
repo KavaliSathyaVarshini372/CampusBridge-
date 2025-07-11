@@ -18,11 +18,14 @@ function SignInForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
       const result = await signInWithEmail(formData);
-      if (!result.success) {
+      if (result.success) {
+        // This will be handled by the useAuth effect
+      } else {
         toast({
           title: "Sign In Failed",
           description: result.message,
@@ -53,6 +56,7 @@ function SignUpForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const [activeTab, setActiveTab] = useState('signup');
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -90,14 +94,17 @@ function SignUpForm() {
   );
 }
 
-
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/events');
+      if (user.email === 'admin@example.com') {
+        router.push('/events'); // Admin dashboard
+      } else {
+        router.push('/'); // Regular user landing page
+      }
     }
   }, [user, loading, router]);
 
@@ -115,7 +122,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary">
       <div className="mb-8">
-        <Logo />
+        <Logo isLoginPage={true}/>
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>

@@ -31,9 +31,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
         setLoading(false);
+        if (user) {
+          if (user.email === 'admin@example.com') {
+            router.push('/events');
+          } else {
+            router.push('/');
+          }
+        }
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const signOut = useCallback(async () => {
     if (!isFirebaseEnabled) {
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await firebaseSignOut(auth);
-      router.push('/login');
+      router.push('/');
     } catch (error: any) {
       toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
     }
